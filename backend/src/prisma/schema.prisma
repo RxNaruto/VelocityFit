@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(uuid())
+  username        String    @unique
+  name            String
+  passwordHash    String
+  profilePhotoUrl String    @default("")
+  points          Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updateAt        DateTime  @updatedAt
+  sessions        Session[]
+  workouts        Workout[]
+
+  @@index([points])
+}
+
+model Session {
+  token     String   @id
+  userId    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model MuscleGroup {
+  id       String     @id
+  slug     String     @unique
+  name     String
+  exercise Exercise[]
+}
+
+model Exercise {
+  id            String         @id
+  name          String
+  muscleGroupId String
+  muscleGroup   MuscleGroup    @relation(fields: [muscleGroupId], references: [id], onDelete: Cascade)
+  entries       WorkoutEntry[]
+
+  @@index([muscleGroupId])
+}
+
+model Workout {
+  id        String         @id @default(uuid())
+  userId    String
+  date      String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries   WorkoutEntry[]
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+}
+
+model WorkoutEntry {
+  id         String       @id @default(uuid())
+  WorkoutId  String
+  exerciseId String
+  notes      String       @default("")
+  position   Int          @default(0)
+  workout    Workout      @relation(fields: [WorkoutId], references: [id], onDelete: Cascade)
+  exercise   Exercise     @relation(fields: [exerciseId], references: [id])
+  sets       WorkoutSet[]
+
+  @@index([WorkoutId])
+  @@index([exerciseId])
+}
+
+model WorkoutSet {
+  id        String       @id @default(uuid())
+  entryId   String
+  reps      Int
+  weight    Float?
+  isFailure Boolean      @default(false)
+  position  Int          @default(0)
+  entry     WorkoutEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([entryId])
+}

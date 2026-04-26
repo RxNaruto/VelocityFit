@@ -1,0 +1,1 @@
+{"version":3,"file":"catalogService.d.ts","sourceRoot":"","sources":["../../src/services/catalogService.ts"],"names":[],"mappings":"AAGA,OAAO,KAAK,EAAE,QAAQ,EAAE,WAAW,EAAE,MAAM,gBAAgB,CAAC;AAG5D,wBAAgB,gBAAgB,IAAI,OAAO,CAAC,WAAW,EAAE,CAAC,CAEzD;AAED,wBAAsB,aAAa,CAAC,EAChC,aAAa,GAChB,GAAE;IACC,aAAa,CAAC,EAAE,MAAM,CAAC;CACrB,GAAG,OAAO,CAAC,QAAQ,EAAE,CAAC,CAe3B"}
