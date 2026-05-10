@@ -38,7 +38,7 @@ export default function LoginPage() {
         <div className="auth-page">
             <div className="auth-card">
                 <div className="auth-brand">
-                    <span className="brand-mark">GT</span>
+                    <span className="brand-mark">VF</span>
                     <h1>Welcome back</h1>
                     <p className="muted">Sign in to log your gym sessions.</p>
                 </div>

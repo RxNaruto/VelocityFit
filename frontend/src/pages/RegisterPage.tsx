@@ -55,7 +55,7 @@ export default function RegisterPage() {
         <div className="auth-page">
             <div className="auth-card">
                 <div className="auth-brand">
-                    <span className="brand-mark">GT</span>
+                    <span className="brand-mark">VF</span>
                     <h1>Create your account</h1>
                     <p className="muted">Start tracking your workouts in seconds.</p>
                 </div>
