@@ -1,1 +1,0 @@
-{"version":3,"file":"HttpError.d.ts","sourceRoot":"","sources":["../../src/utils/HttpError.ts"],"names":[],"mappings":"AAAA,MAAM,CAAC,OAAO,OAAO,SAAU,SAAQ,KAAK;IACxC,MAAM,EAAE,MAAM,CAAC;IACf,OAAO,CAAC,EAAE,OAAO,CAAC;gBAEN,MAAM,EAAE,MAAM,EAAE,OAAO,EAAE,MAAM,EAAE,OAAO,CAAC,EAAE,OAAO;CAKjE"}

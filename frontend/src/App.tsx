@@ -24,8 +24,8 @@ export default function App() {
       {!onAuthPage && (
         <header className="app-header">
           <Link to={isAuthenticated ? '/' : '/login'} className="brand">
-            <span className="brand-mark">GT</span>
-            <span className="brand-name">Gym Tracker</span>
+            <span className="brand-mark">V</span>
+            <span className="brand-name">VelocityFit</span>
           </Link>
           {isAuthenticated && (
             <nav className="app-nav">
@@ -68,7 +68,7 @@ export default function App() {
 
       {!onAuthPage && (
         <footer className="app-footer">
-          <small>Gym Tracker • TypeScript + Prisma</small>
+          <small>VelocityFit • Rithk Chaudhary</small>
         </footer>
       )}
     </div>
