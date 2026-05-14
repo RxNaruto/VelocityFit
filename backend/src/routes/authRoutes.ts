@@ -8,5 +8,9 @@ router.post("/register", ctrl.register);
 router.post("/login", ctrl.login);
 router.post("/logout", requireAuth, ctrl.logout);
 router.get("/me", requireAuth, ctrl.me);
-
+router.get("/test", (req, res) => {
+    return res.json({
+        message: "success"
+    })
+})
 export default router;
