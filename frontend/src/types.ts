@@ -1,8 +1,3 @@
-/**
- * Shared API/domain types used across the frontend. Mirror the backend
- * DTOs so requests/responses are typed end-to-end.
- */
-
 export interface User {
     id: string;
     username: string;
@@ -11,121 +6,115 @@ export interface User {
     points: number;
     createdAt: string;
     updatedAt: string;
-}
-
-export interface MuscleGroup {
+  }
+  
+  export interface MuscleGroup {
     id: string;
     slug: string;
     name: string;
-}
-
-export interface Exercise {
+  }
+  
+  export interface Exercise {
     id: string;
     name: string;
     muscleGroupId: string;
-}
-
-export interface WorkoutSet {
+  }
+  
+  export interface WorkoutSet {
     id: string;
     reps: number;
     weight: number | null;
     isFailure: boolean;
-}
-
-export interface SetDraft {
+  }
+  
+  export interface SetDraft {
     id: string;
     reps: number | string;
     weight: number | string;
     isFailure: boolean;
-}
-
-export interface WorkoutEntry {
+  }
+  
+  export interface WorkoutEntry {
     id: string;
     exerciseId: string;
     notes: string;
     sets: WorkoutSet[];
-}
-
-export interface EntryDraft {
+  }
+  
+  export interface EntryDraft {
     exerciseId: string;
     notes: string;
     sets: Array<{
-        reps: number;
-        weight: number | null;
-        isFailure: boolean;
+      reps: number;
+      weight: number | null;
+      isFailure: boolean;
     }>;
-}
-
-export interface Workout {
+  }
+  
+  export interface Workout {
     id: string;
     userId: string;
     date: string;
     entries: WorkoutEntry[];
     createdAt: string;
     updatedAt: string;
-}
-
-export interface AuthResult {
+  }
+  
+  export interface AuthResult {
     user: User;
     token: string;
-}
-
-export interface RegisterPayload {
+  }
+  
+  export interface RegisterPayload {
     username: string;
     name: string;
     password: string;
     profilePhotoUrl?: string;
-}
-
-export interface LoginPayload {
+  }
+  
+  export interface LoginPayload {
     username: string;
     password: string;
-}
-
-export interface ProfilePatch {
+  }
+  
+  export interface ProfilePatch {
     name?: string;
     profilePhotoUrl?: string;
-}
-
-export interface LeaderboardRow {
+  }
+  
+  export interface LeaderboardRow {
     rank: number;
     userId: string;
     username: string;
     name: string;
     profilePhotoUrl: string;
     points: number;
-}
-
-export interface LeaderboardResponse {
+  }
+  
+  export interface LeaderboardResponse {
     generatedAt: string;
     top: LeaderboardRow[];
-}
-
-export interface RankInfo {
+  }
+  
+  export interface RankInfo {
     rank: number | null;
     points: number;
     totalUsers: number;
-}
-
-export interface UserUpdatedEvent {
-    userId: string;
-    points: number;
-    rank: number | null;
-}
-
-export interface TopExercise {
+  }
+  
+  export interface TopExercise {
     exerciseId: string;
     name: string;
     count: number;
-}
-
-export interface TopGroup {
+  }
+  
+  export interface TopGroup {
     muscleGroupId: string;
     name: string;
     count: number;
-}
-
-export interface FavoriteExercise {
+  }
+  
+  export interface FavoriteExercise {
     exerciseId: string;
     name: string;
     muscleGroupId: string | null;
@@ -133,9 +122,9 @@ export interface FavoriteExercise {
     totalSets: number;
     totalReps: number;
     sessions: number;
-}
-
-export interface ProfileStats {
+  }
+  
+  export interface ProfileStats {
     period: 'all' | 'week' | 'month';
     periodStartDate: string | null;
     weekStartDate: string;
@@ -151,16 +140,16 @@ export interface ProfileStats {
     topGroups: TopGroup[];
     favoriteExercise: FavoriteExercise | null;
     weeklyMuscleGroups: TopGroup[];
-}
-
-export interface RecentPublicWorkout {
+  }
+  
+  export interface RecentPublicWorkout {
     id: string;
     date: string;
     exerciseCount: number;
     setCount: number;
-}
-
-export interface PublicProfile {
+  }
+  
+  export interface PublicProfile {
     id: string;
     username: string;
     name: string;
@@ -171,14 +160,14 @@ export interface PublicProfile {
     totalUsers: number;
     stats: ProfileStats;
     recentWorkouts: RecentPublicWorkout[];
-}
-
-export class ApiError extends Error {
+  }
+  
+  export class ApiError extends Error {
     status?: number;
     details?: unknown;
     constructor(message: string, status?: number, details?: unknown) {
-        super(message);
-        this.status = status;
-        this.details = details;
+      super(message);
+      this.status = status;
+      this.details = details;
     }
-}
+  }

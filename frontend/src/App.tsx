@@ -24,13 +24,13 @@ export default function App() {
       {!onAuthPage && (
         <header className="app-header">
           <Link to={isAuthenticated ? '/' : '/login'} className="brand">
-            <span className="brand-mark">V</span>
-            <span className="brand-name">VelocityFit</span>
+            <span className="brand-mark">VF</span>
+            <span className="brand-name">VELOCITY FIT</span>
           </Link>
           {isAuthenticated && (
             <nav className="app-nav">
               <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-active' : '')}>
-                Calendar
+                Home
               </NavLink>
               <NavLink
                 to="/leaderboard"
@@ -68,7 +68,7 @@ export default function App() {
 
       {!onAuthPage && (
         <footer className="app-footer">
-          <small>VelocityFit • Rithk Chaudhary</small>
+          <small>VELOCITY FIT • Train hard. Stay consistent.</small>
         </footer>
       )}
     </div>
