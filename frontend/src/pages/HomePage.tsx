@@ -45,7 +45,7 @@ export default function HomePage() {
         {/* ── Row 1 ── */}
         <section className="card brand-card">
           <div className="brand-card-head">
-            <span className="brand-mark brand-mark-lg">VF</span>
+            <span className="brand-mark brand-mark-lg">V</span>
             <div>
               <h1 className="brand-card-title">VELOCITY FIT</h1>
               <p className="brand-card-tagline">TRAIN HARD. STAY CONSISTENT.</p>
@@ -53,9 +53,8 @@ export default function HomePage() {
           </div>
           <p className="muted brand-card-status">
             {todayWorkout
-              ? `You've logged ${todayWorkout.entries.length} exercise${
-                  todayWorkout.entries.length === 1 ? '' : 's'
-                } today. Keep going!`
+              ? `You've logged ${todayWorkout.entries.length} exercise${todayWorkout.entries.length === 1 ? '' : 's'
+              } today. Keep going!`
               : "You haven't logged today's workout yet."}
           </p>
           <Link to="/add" className="btn btn-primary btn-lg brand-card-cta">
