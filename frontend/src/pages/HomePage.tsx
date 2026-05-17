@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Calendar from '../component/Calendar';
 import Avatar from '../component/Avatar';
+import Spinner from '../component/Spinner';
 import { useWorkouts } from '../context/WorkoutContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
@@ -45,7 +46,7 @@ export default function HomePage() {
         {/* ── Row 1 ── */}
         <section className="card brand-card">
           <div className="brand-card-head">
-            <span className="brand-mark brand-mark-lg">V</span>
+            <span className="brand-mark brand-mark-lg">VF</span>
             <div>
               <h1 className="brand-card-title">VELOCITY FIT</h1>
               <p className="brand-card-tagline">TRAIN HARD. STAY CONSISTENT.</p>
@@ -121,7 +122,7 @@ export default function HomePage() {
             </Link>
           </div>
           {boardLoading ? (
-            <p className="muted">Loading…</p>
+            <Spinner size={24} label="Loading…" />
           ) : topRows.length === 0 ? (
             <p className="muted">No rankings yet — log a workout to get on the board!</p>
           ) : (

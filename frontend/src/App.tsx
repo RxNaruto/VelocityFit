@@ -11,6 +11,7 @@ import LeaderboardPage from './pages/LeaderboardPage';
 import UserProfilePage from './pages/UserProfilePage';
 import ProtectedRoute from './component/ProtectedRoute';
 import UserMenu from './component/UserMenu';
+import Spinner from './component/Spinner';
 import { useAuth } from './context/AuthContext';
 import { WorkoutProvider, useWorkouts } from './context/WorkoutContext';
 
@@ -24,7 +25,7 @@ export default function App() {
       {!onAuthPage && (
         <header className="app-header">
           <Link to={isAuthenticated ? '/' : '/login'} className="brand">
-            <span className="brand-mark">V</span>
+            <span className="brand-mark">VF</span>
             <span className="brand-name">VELOCITY FIT</span>
           </Link>
           {isAuthenticated && (
@@ -46,7 +47,9 @@ export default function App() {
 
       <main className={onAuthPage ? 'app-main app-main-auth' : 'app-main'}>
         {bootstrapping ? (
-          <div className="loading">Loading…</div>
+          <div className="loading">
+            <Spinner size={32} label="Loading…" />
+          </div>
         ) : (
           <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -68,7 +71,7 @@ export default function App() {
 
       {!onAuthPage && (
         <footer className="app-footer">
-          <small>VELOCITY FIT • Rithk Chaudhary.</small>
+          <small>VELOCITY FIT • Train hard. Stay consistent.</small>
         </footer>
       )}
     </div>
@@ -77,7 +80,6 @@ export default function App() {
 
 function ProtectedShell() {
   const { loading, error } = useWorkouts();
-  // Surface load errors via toast (avoids stacking duplicate banners across renders).
   const lastErrorRef = useRef<string | null>(null);
   useEffect(() => {
     if (error && lastErrorRef.current !== error) {
@@ -86,7 +88,12 @@ function ProtectedShell() {
     }
   }, [error]);
 
-  if (loading) return <div className="loading">Loading your workouts…</div>;
+  if (loading)
+    return (
+      <div className="loading">
+        <Spinner size={32} label="Loading your workouts…" />
+      </div>
+    );
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />

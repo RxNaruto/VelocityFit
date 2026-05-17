@@ -1,10 +1,10 @@
-
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import Avatar from '../component/Avatar';
+import Spinner from '../component/Spinner';
 import { formatPretty } from '../utils/dates';
 import type { ProfileStats, RankInfo } from '../types';
 
@@ -35,7 +35,6 @@ export default function ProfilePage() {
     });
     const [saving, setSaving] = useState(false);
 
-    // Rank/points are independent of the selected period, so fetch once.
     useEffect(() => {
         let cancelled = false;
         api
@@ -49,7 +48,6 @@ export default function ProfilePage() {
         };
     }, []);
 
-    // Re-fetch stats whenever the period changes.
     useEffect(() => {
         let cancelled = false;
         setStatsLoading(true);
@@ -103,13 +101,9 @@ export default function ProfilePage() {
     return (
         <div className="page">
             <div className="page-toolbar">
-                <Link to="/" className="btn btn-ghost">
-                    ← Back
-                </Link>
+                <Link to="/" className="btn btn-ghost">← Back</Link>
                 {!editing && (
-                    <button type="button" className="btn btn-primary" onClick={startEdit}>
-                        Edit profile
-                    </button>
+                    <button type="button" className="btn btn-primary" onClick={startEdit}>Edit profile</button>
                 )}
             </div>
 
@@ -118,9 +112,7 @@ export default function ProfilePage() {
                 <div className="profile-identity">
                     <h1>{user.name}</h1>
                     <div className="muted">@{user.username}</div>
-                    <div className="muted small">
-                        Joined {formatPretty(user.createdAt?.slice(0, 10))}
-                    </div>
+                    <div className="muted small">Joined {formatPretty(user.createdAt?.slice(0, 10))}</div>
                 </div>
                 {rank && (
                     <div className="profile-rank-pill">
@@ -130,9 +122,7 @@ export default function ProfilePage() {
                             <span className="muted small"> / {rank.totalUsers}</span>
                         </div>
                         <div className="profile-points">{rank.points} pts</div>
-                        <Link to="/leaderboard" className="btn btn-ghost btn-sm">
-                            View leaderboard →
-                        </Link>
+                        <Link to="/leaderboard" className="btn btn-ghost btn-sm">View leaderboard →</Link>
                     </div>
                 )}
             </section>
@@ -152,41 +142,31 @@ export default function ProfilePage() {
                             />
                         </label>
                         <label className="field">
-                            <span>
-                                Profile photo URL <em className="muted small">(optional)</em>
-                            </span>
+                            <span>Profile photo URL <em className="muted small">(optional)</em></span>
                             <input
                                 type="url"
                                 placeholder="https://..."
                                 value={form.profilePhotoUrl}
-                                onChange={(e) =>
-                                    setForm((p) => ({ ...p, profilePhotoUrl: e.target.value }))
-                                }
+                                onChange={(e) => setForm((p) => ({ ...p, profilePhotoUrl: e.target.value }))}
                             />
-                            <small className="muted">
-                                Tip: leave empty to use the auto-generated initials avatar.
-                            </small>
+                            <small className="muted">Tip: leave empty to use the auto-generated initials avatar.</small>
                         </label>
                         {form.profilePhotoUrl && (
                             <div className="profile-preview">
-                                <Avatar
-                                    user={{ ...user, name: form.name }}
-                                    photoUrl={form.profilePhotoUrl}
-                                    size={56}
-                                />
+                                <Avatar user={{ ...user, name: form.name }} photoUrl={form.profilePhotoUrl} size={56} />
                                 <span className="muted small">Preview</span>
                             </div>
                         )}
                         <div className="actions-row">
-                            <button
-                                type="button"
-                                className="btn btn-ghost"
-                                onClick={() => setEditing(false)}
-                            >
-                                Cancel
-                            </button>
+                            <button type="button" className="btn btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
                             <button type="submit" className="btn btn-primary" disabled={saving}>
-                                {saving ? 'Saving…' : 'Save changes'}
+                                {saving ? (
+                                    <>
+                                        <Spinner size={14} inline /> Saving…
+                                    </>
+                                ) : (
+                                    'Save changes'
+                                )}
                             </button>
                         </div>
                     </form>
@@ -205,28 +185,20 @@ export default function ProfilePage() {
                         </div>
                         <div className="favorite-stats">
                             <div className="favorite-stat">
-                                <div className="favorite-stat-value">
-                                    {stats.favoriteExercise.totalSets}
-                                </div>
+                                <div className="favorite-stat-value">{stats.favoriteExercise.totalSets}</div>
                                 <div className="favorite-stat-label">sets</div>
                             </div>
                             <div className="favorite-stat">
-                                <div className="favorite-stat-value">
-                                    {stats.favoriteExercise.totalReps}
-                                </div>
+                                <div className="favorite-stat-value">{stats.favoriteExercise.totalReps}</div>
                                 <div className="favorite-stat-label">reps</div>
                             </div>
                             <div className="favorite-stat">
-                                <div className="favorite-stat-value">
-                                    {stats.favoriteExercise.sessions}
-                                </div>
+                                <div className="favorite-stat-value">{stats.favoriteExercise.sessions}</div>
                                 <div className="favorite-stat-label">sessions</div>
                             </div>
                         </div>
                     </div>
-                    <p className="muted small">
-                        The exercise you've logged the most sets &amp; reps for, all time.
-                    </p>
+                    <p className="muted small">The exercise you've logged the most sets &amp; reps for, all time.</p>
                 </section>
             )}
 
@@ -249,7 +221,7 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {statsLoading && <p className="muted">Loading {periodLabel.toLowerCase()}…</p>}
+                {statsLoading && <Spinner size={24} label={`Loading ${periodLabel.toLowerCase()}…`} />}
 
                 {stats && !statsLoading && (
                     <>
@@ -257,33 +229,18 @@ export default function ProfilePage() {
                             <Stat label={`Workouts (${periodLabel})`} value={stats.totalWorkouts} />
                             <Stat label="Total sets" value={stats.totalSets} />
                             <Stat label="Total reps" value={stats.totalReps} />
-                            <Stat
-                                label="Volume (reps × kg)"
-                                value={Math.round(stats.totalVolume).toLocaleString()}
-                            />
+                            <Stat label="Volume (reps × kg)" value={Math.round(stats.totalVolume).toLocaleString()} />
                             <Stat label="Failure sets" value={stats.failureSets || 0} />
-                            <Stat
-                                label="Current streak"
-                                value={`${stats.currentStreakDays} day${stats.currentStreakDays === 1 ? '' : 's'}`}
-                            />
-                            <Stat
-                                label="Last session"
-                                value={stats.lastWorkout ? formatPretty(stats.lastWorkout) : '—'}
-                                small
-                            />
+                            <Stat label="Current streak" value={`${stats.currentStreakDays} day${stats.currentStreakDays === 1 ? '' : 's'}`} />
+                            <Stat label="Last session" value={stats.lastWorkout ? formatPretty(stats.lastWorkout) : '—'} small />
                         </div>
 
                         {period === 'week' && (
                             <div className="profile-section">
                                 <h3>Muscles hit this week</h3>
-                                <p className="muted small">
-                                    Week starting{' '}
-                                    {stats.weekStartDate ? formatPretty(stats.weekStartDate) : '—'}.
-                                </p>
+                                <p className="muted small">Week starting {stats.weekStartDate ? formatPretty(stats.weekStartDate) : '—'}.</p>
                                 {stats.weeklyMuscleGroups.length === 0 ? (
-                                    <p className="muted">
-                                        No muscle groups trained yet this week — go log a session!
-                                    </p>
+                                    <p className="muted">No muscle groups trained yet this week — go log a session!</p>
                                 ) : (
                                     <div className="muscle-chip-row">
                                         {stats.weeklyMuscleGroups.map((g) => (

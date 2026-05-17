@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useWorkouts } from '../context/WorkoutContext';
+import Spinner from '../component/Spinner';
 import { formatPretty, isToday } from '../utils/dates';
 
 export default function WorkoutDayPage() {
@@ -13,8 +14,6 @@ export default function WorkoutDayPage() {
     const editable = isToday(date);
     const [exercisesReady, setExercisesReady] = useState(false);
 
-    // Make sure we have exercise names cached so we can render the workout
-    // even if the user lands directly on this page.
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -29,15 +28,9 @@ export default function WorkoutDayPage() {
     return (
         <div className="page">
             <div className="page-toolbar">
-                <Link to="/" className="btn btn-ghost">
-                    ← Back
-                </Link>
+                <Link to="/" className="btn btn-ghost">← Back</Link>
                 {editable && (
-                    <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={() => navigate('/add')}
-                    >
+                    <button type="button" className="btn btn-primary" onClick={() => navigate('/add')}>
                         {workout ? "Edit today's workout" : "+ Add today's workout"}
                     </button>
                 )}
@@ -45,9 +38,7 @@ export default function WorkoutDayPage() {
 
             <h1>{formatPretty(date)}</h1>
             {!editable && (
-                <p className="muted">
-                    Past sessions are read-only. You can only edit today's workout.
-                </p>
+                <p className="muted">Past sessions are read-only. You can only edit today's workout.</p>
             )}
 
             {!workout ? (
@@ -57,7 +48,7 @@ export default function WorkoutDayPage() {
             ) : (
                 <div className="card">
                     {!exercisesReady ? (
-                        <p className="muted">Loading…</p>
+                        <Spinner size={24} label="Loading…" />
                     ) : (
                         <ol className="entry-list">
                             {workout.entries.map((entry) => {
