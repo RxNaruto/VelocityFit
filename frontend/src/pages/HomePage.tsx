@@ -46,7 +46,7 @@ export default function HomePage() {
         {/* ── Row 1 ── */}
         <section className="card brand-card">
           <div className="brand-card-head">
-            <span className="brand-mark brand-mark-lg">VF</span>
+            <span className="brand-mark brand-mark-lg">V</span>
             <div>
               <h1 className="brand-card-title">VELOCITY FIT</h1>
               <p className="brand-card-tagline">TRAIN HARD. STAY CONSISTENT.</p>

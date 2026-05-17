@@ -25,7 +25,7 @@ export default function App() {
       {!onAuthPage && (
         <header className="app-header">
           <Link to={isAuthenticated ? '/' : '/login'} className="brand">
-            <span className="brand-mark">VF</span>
+            <span className="brand-mark">V</span>
             <span className="brand-name">VELOCITY FIT</span>
           </Link>
           {isAuthenticated && (
@@ -71,7 +71,7 @@ export default function App() {
 
       {!onAuthPage && (
         <footer className="app-footer">
-          <small>VELOCITY FIT • Train hard. Stay consistent.</small>
+          <small>VELOCITY FIT • Rithk Chaudhary.</small>
         </footer>
       )}
     </div>
