@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useWorkouts } from '../context/WorkoutContext';
 import Spinner from '../component/Spinner';
 import { formatPretty, isToday } from '../utils/dates';
+import { isTimeBasedExercise, formatDuration } from '../utils/exerciseKind';
 
 export default function WorkoutDayPage() {
     const { date = '' } = useParams<{ date: string }>();
@@ -14,6 +15,8 @@ export default function WorkoutDayPage() {
     const editable = isToday(date);
     const [exercisesReady, setExercisesReady] = useState(false);
 
+    // Make sure we have exercise names cached so we can render the workout
+    // even if the user lands directly on this page.
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -28,9 +31,15 @@ export default function WorkoutDayPage() {
     return (
         <div className="page">
             <div className="page-toolbar">
-                <Link to="/" className="btn btn-ghost">← Back</Link>
+                <Link to="/" className="btn btn-ghost">
+                    ← Back
+                </Link>
                 {editable && (
-                    <button type="button" className="btn btn-primary" onClick={() => navigate('/add')}>
+                    <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => navigate('/add')}
+                    >
                         {workout ? "Edit today's workout" : "+ Add today's workout"}
                     </button>
                 )}
@@ -38,7 +47,9 @@ export default function WorkoutDayPage() {
 
             <h1>{formatPretty(date)}</h1>
             {!editable && (
-                <p className="muted">Past sessions are read-only. You can only edit today's workout.</p>
+                <p className="muted">
+                    Past sessions are read-only. You can only edit today's workout.
+                </p>
             )}
 
             {!workout ? (
@@ -54,6 +65,7 @@ export default function WorkoutDayPage() {
                             {workout.entries.map((entry) => {
                                 const exercise = exerciseLookup[entry.exerciseId];
                                 const group = exercise && muscleGroupLookup[exercise.muscleGroupId];
+                                const timeBased = isTimeBasedExercise(exercise, muscleGroupLookup);
                                 return (
                                     <li key={entry.id} className="entry">
                                         <div className="entry-head">
@@ -64,16 +76,28 @@ export default function WorkoutDayPage() {
                                             <thead>
                                                 <tr>
                                                     <th>Set</th>
-                                                    <th>Reps</th>
-                                                    <th>Weight</th>
+                                                    {timeBased ? (
+                                                        <th colSpan={2}>Duration</th>
+                                                    ) : (
+                                                        <>
+                                                            <th>Reps</th>
+                                                            <th>Weight</th>
+                                                        </>
+                                                    )}
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {entry.sets.map((s, i) => (
                                                     <tr key={s.id}>
                                                         <td>{i + 1}</td>
-                                                        <td>{s.reps}</td>
-                                                        <td>{s.weight ?? '—'}</td>
+                                                        {timeBased ? (
+                                                            <td colSpan={2}>{formatDuration(s.reps)} min</td>
+                                                        ) : (
+                                                            <>
+                                                                <td>{s.reps}</td>
+                                                                <td>{s.weight ?? '—'}</td>
+                                                            </>
+                                                        )}
                                                     </tr>
                                                 ))}
                                             </tbody>

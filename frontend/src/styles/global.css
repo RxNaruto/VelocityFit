@@ -128,6 +128,13 @@ a {
   font-size: 13px;
   letter-spacing: 0.04em;
   box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45);
+  overflow: hidden;
+}
+
+.brand-mark-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
 }
 
 .brand-mark-lg {
@@ -135,6 +142,19 @@ a {
   height: 56px;
   border-radius: 14px;
   font-size: 20px;
+}
+
+/* Brand-mark image (the panther logo). Tinted white to read against the
+   red plate, matching how muscle-icon PNGs are recolored. */
+.brand-mark-img {
+  display: block;
+  width: 72%;
+  height: 72%;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
 }
 
 .brand-name {
@@ -779,6 +799,24 @@ a {
   background: rgba(239, 68, 68, 0.18);
   border-color: var(--primary-edge);
   color: #fecaca;
+}
+.set-pill.is-cardio {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.45);
+  color: #bfdbfe;
+}
+.set-pill.is-time {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fde68a;
+}
+.set-pill-unit {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-left: 2px;
 }
 .set-pill-badge {
   display: inline-flex;

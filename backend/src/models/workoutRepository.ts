@@ -147,15 +147,14 @@ export async function update(
     id: string,
     patch: UpdateWorkoutPatch
 ): Promise<WorkoutDTO | null> {
-    // Replace-all semantics for entries (mirrors the original file-DB behavior).
-    // Deleting entries cascades to their sets via the schema relation.
     return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const existing = await tx.workout.findUnique({ where: { id } });
         if (!existing) return null;
 
         if (patch.entries) {
-            await tx.workoutEntry.deleteMany({ where: { WorkoutId: id } });
+            await tx.workoutEntry.deleteMany({ where: { workoutId: id } }); // ✅ fixed: was WorkoutId
         }
+
         const updated = await tx.workout.update({
             where: { id },
             data: {
@@ -178,10 +177,6 @@ export async function remove(id: string): Promise<boolean> {
     }
 }
 
-/**
- * Returns lightweight stats used by the public profile page.
- * (Detailed stats live in profileService.)--
- */
 export async function statsForUser(userId: string): Promise<{
     totalWorkouts: number;
     totalSets: number;

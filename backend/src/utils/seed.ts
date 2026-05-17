@@ -19,7 +19,11 @@ export async function seedCatalog(_opts: SeedOptions = {}): Promise<void> {
     for (const e of exercises) {
         await prisma.exercise.upsert({
             where: { id: e.id },
-            update: { name: e.name, muscleGroupId: e.muscleGroupId },
+            update: {
+                name: e.name,
+                muscleGroupId: e.muscleGroupId,
+                tracksTime: e.tracksTime,
+            },
             create: e,
         });
     }

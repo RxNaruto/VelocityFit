@@ -1,4 +1,9 @@
 import { useWorkouts } from '../context/WorkoutContext';
+import {
+    formatDuration,
+    isCardioGroup,
+    isTimeBasedExercise,
+} from '../utils/exerciseKind';
 import type { WorkoutEntry } from '../types';
 
 interface EntryListProps {
@@ -22,6 +27,15 @@ export default function EntryList({ entries, onRemove }: EntryListProps) {
             {entries.map((entry, idx) => {
                 const exercise = exerciseLookup[entry.exerciseId];
                 const group = exercise && muscleGroupLookup[exercise.muscleGroupId];
+                const timeBased = isTimeBasedExercise(exercise, muscleGroupLookup);
+                // Cardio gets a stronger blue tint; non-cardio time-based (Plank,
+                // Dead Hang, Wall Sit, …) gets a muted amber tint so it's still
+                // visually distinct from reps-based sets but doesn't look like cardio.
+                const pillClass = timeBased
+                    ? isCardioGroup(group)
+                        ? ' is-cardio'
+                        : ' is-time'
+                    : '';
                 return (
                     <li key={entry.id || idx} className="entry">
                         <div className="entry-head">
@@ -43,14 +57,23 @@ export default function EntryList({ entries, onRemove }: EntryListProps) {
                         <div className="set-pills">
                             {entry.sets.map((s, i) => (
                                 <span
-                                    className={`set-pill${s.isFailure ? ' is-failure' : ''}`}
+                                    className={`set-pill${pillClass}${s.isFailure ? ' is-failure' : ''}`}
                                     key={s.id || i}
                                     title={s.isFailure ? 'Set taken to failure' : undefined}
                                 >
-                                    {s.reps}
-                                    {s.weight != null && (s.weight as unknown as string) !== ''
-                                        ? ` × ${s.weight}`
-                                        : ''}
+                                    {timeBased ? (
+                                        <>
+                                            {formatDuration(s.reps)}
+                                            <span className="set-pill-unit">min</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {s.reps}
+                                            {s.weight != null && (s.weight as unknown as string) !== ''
+                                                ? ` × ${s.weight}`
+                                                : ''}
+                                        </>
+                                    )}
                                     {s.isFailure && <span className="set-pill-badge">F</span>}
                                 </span>
                             ))}

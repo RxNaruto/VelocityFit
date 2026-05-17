@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import Spinner from '../component/Spinner';
+import BrandMark from '../component/BrandMark';
 
 interface RegisterForm {
   username: string;
@@ -55,7 +56,7 @@ export default function RegisterPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-brand">
-          <span className="brand-mark"></span>
+          <BrandMark size="lg" />
           <h1>Join VELOCITY FIT</h1>
           <p className="muted">Start tracking your workouts in seconds.</p>
         </div>
@@ -98,7 +99,9 @@ export default function RegisterPage() {
             />
           </label>
           <label className="field">
-            <span>Profile photo URL <em className="muted small">(optional)</em></span>
+            <span>
+              Profile photo URL <em className="muted small">(optional)</em>
+            </span>
             <input
               type="url"
               placeholder="https://..."

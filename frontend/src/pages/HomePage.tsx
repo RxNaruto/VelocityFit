@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Calendar from '../component/Calendar';
 import Avatar from '../component/Avatar';
 import Spinner from '../component/Spinner';
+import BrandMark from '../component/BrandMark';
 import { useWorkouts } from '../context/WorkoutContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
@@ -46,7 +47,7 @@ export default function HomePage() {
         {/* ── Row 1 ── */}
         <section className="card brand-card">
           <div className="brand-card-head">
-            <span className="brand-mark brand-mark-lg">V</span>
+            <BrandMark size="lg" />
             <div>
               <h1 className="brand-card-title">VELOCITY FIT</h1>
               <p className="brand-card-tagline">TRAIN HARD. STAY CONSISTENT.</p>

@@ -12,12 +12,14 @@ const PNG_SLUGS = new Set([
   'shoulders',
   'biceps',
   'core',
+  'cardio',
+  'glutes',
 ]);
 
 /**
- * Inline icon set for muscle groups. PNG silhouettes for the 6 main groups
- * (chest, back, legs, shoulders, biceps, core), inline SVG for everything
- * else (triceps, cardio, forearms, glutes, calves, full-body, …).
+ * Inline icon set for muscle groups. PNG silhouettes for the 8 main groups
+ * (chest, back, legs, shoulders, biceps, core, cardio, glutes), inline SVG
+ * for everything else (triceps, forearms, calves, full-body, traps, …).
  */
 export default function MuscleIcon({ slug, size = 28 }: MuscleIconProps) {
   if (PNG_SLUGS.has(slug)) {
@@ -52,11 +54,14 @@ export default function MuscleIcon({ slug, size = 28 }: MuscleIconProps) {
           <path d="M9 12l3-3 3 3" />
         </svg>
       );
-    case 'cardio':
+    case 'traps':
       return (
         <svg {...common}>
-          <path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z" />
-          <path d="M3 12h3l1.5-2.5L10 14l1.5-3" />
+          <circle cx="12" cy="4.5" r="2" />
+          <path d="M4 14c2-4 5-6 8-6s6 2 8 6" />
+          <path d="M4 14l3 5" />
+          <path d="M20 14l-3 5" />
+          <path d="M9 14l3 4 3-4" />
         </svg>
       );
     case 'forearms':
@@ -64,12 +69,6 @@ export default function MuscleIcon({ slug, size = 28 }: MuscleIconProps) {
         <svg {...common}>
           <path d="M6 4c1 4 2 7 4 9l-3 7h3l4-7c2-2 3-5 4-9" />
           <circle cx="11" cy="20" r="1.4" />
-        </svg>
-      );
-    case 'glutes':
-      return (
-        <svg {...common}>
-          <path d="M4 13c0-3 2-6 8-6s8 3 8 6c0 4-2 7-5 7-2 0-2-1-3-1s-1 1-3 1c-3 0-5-3-5-7z" />
         </svg>
       );
     case 'calves':
