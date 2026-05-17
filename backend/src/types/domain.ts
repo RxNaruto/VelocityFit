@@ -1,11 +1,3 @@
-
-/**
- * Application-level shapes returned to the API. We keep these separate
- * from raw Prisma model types so we can hide internal columns
- * (e.g. `passwordHash`) and reshape relations into a flat, JSON-friendly
- * structure for the frontend.
- */
-
 export interface PublicUser {
     id: string;
     username: string;
@@ -63,6 +55,8 @@ export interface ExerciseDTO {
     id: string;
     name: string;
     muscleGroupId: string;
+    /** Time-per-set instead of reps × weight (cardio + isometrics). */
+    tracksTime: boolean;
 }
 
 export interface LeaderboardRow {

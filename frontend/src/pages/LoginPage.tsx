@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import Spinner from '../component/Spinner';
+import BrandMark from '../component/BrandMark';
 
 export default function LoginPage() {
   const { signIn, isAuthenticated } = useAuth();
@@ -38,7 +39,7 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-brand">
-          <span className="brand-mark">V</span>
+          <BrandMark size="lg" />
           <h1>VELOCITY FIT</h1>
           <p className="muted">Sign in to log your gym sessions.</p>
         </div>

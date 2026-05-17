@@ -12,6 +12,7 @@ import UserProfilePage from './pages/UserProfilePage';
 import ProtectedRoute from './component/ProtectedRoute';
 import UserMenu from './component/UserMenu';
 import Spinner from './component/Spinner';
+import BrandMark from './component/BrandMark';
 import { useAuth } from './context/AuthContext';
 import { WorkoutProvider, useWorkouts } from './context/WorkoutContext';
 
@@ -25,7 +26,7 @@ export default function App() {
       {!onAuthPage && (
         <header className="app-header">
           <Link to={isAuthenticated ? '/' : '/login'} className="brand">
-            <span className="brand-mark">V</span>
+            <BrandMark />
             <span className="brand-name">VELOCITY FIT</span>
           </Link>
           {isAuthenticated && (
@@ -80,6 +81,7 @@ export default function App() {
 
 function ProtectedShell() {
   const { loading, error } = useWorkouts();
+  // Surface load errors via toast (avoids stacking duplicate banners across renders).
   const lastErrorRef = useRef<string | null>(null);
   useEffect(() => {
     if (error && lastErrorRef.current !== error) {

@@ -8,16 +8,17 @@ datasource db {
 }
 
 model User {
-  id              String    @id @default(uuid())
-  username        String    @unique
+  id              String   @id @default(uuid())
+  username        String   @unique
   name            String
   passwordHash    String
-  profilePhotoUrl String    @default("")
-  points          Int       @default(0)
-  createdAt       DateTime  @default(now())
-  updateAt        DateTime  @updatedAt
-  sessions        Session[]
-  workouts        Workout[]
+  profilePhotoUrl String   @default("")
+  points          Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  sessions Session[]
+  workouts Workout[]
 
   @@index([points])
 }
@@ -27,37 +28,50 @@ model Session {
   userId    String
   createdAt DateTime @default(now())
   expiresAt DateTime
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
 }
 
 model MuscleGroup {
-  id       String     @id
-  slug     String     @unique
-  name     String
-  exercise Exercise[]
+  id   String @id
+  slug String @unique
+  name String
+
+  exercises Exercise[]
 }
 
 model Exercise {
-  id            String         @id
+  id            String  @id
   name          String
   muscleGroupId String
-  muscleGroup   MuscleGroup    @relation(fields: [muscleGroupId], references: [id], onDelete: Cascade)
-  entries       WorkoutEntry[]
+  // When true, this exercise is logged with time-per-set (seconds) instead
+  // of reps × weight. Used for all Cardio exercises plus isometric/duration
+  // strength moves (Plank, Side Plank, Dead Hang, Farmer's Walk/Carry, …).
+  // For time-based sets the persistence layer stores `reps = totalSeconds`
+  // and `weight = null` — no extra column is needed on WorkoutSet.
+  tracksTime    Boolean @default(false)
+
+  muscleGroup MuscleGroup    @relation(fields: [muscleGroupId], references: [id], onDelete: Cascade)
+  entries     WorkoutEntry[]
 
   @@index([muscleGroupId])
 }
 
+// `date` is stored as the YYYY-MM-DD calendar key (string) so that
+// "today" comparisons remain timezone-stable per user, matching the
+// original app behavior.
 model Workout {
-  id        String         @id @default(uuid())
+  id        String   @id @default(uuid())
   userId    String
   date      String
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  entries   WorkoutEntry[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries WorkoutEntry[]
 
   @@unique([userId, date])
   @@index([userId])
@@ -65,27 +79,29 @@ model Workout {
 }
 
 model WorkoutEntry {
-  id         String       @id @default(uuid())
-  WorkoutId  String
+  id         String @id @default(uuid())
+  workoutId  String
   exerciseId String
-  notes      String       @default("")
-  position   Int          @default(0)
-  workout    Workout      @relation(fields: [WorkoutId], references: [id], onDelete: Cascade)
-  exercise   Exercise     @relation(fields: [exerciseId], references: [id])
-  sets       WorkoutSet[]
+  notes      String @default("")
+  position   Int    @default(0)
 
-  @@index([WorkoutId])
+  workout  Workout      @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise Exercise     @relation(fields: [exerciseId], references: [id])
+  sets     WorkoutSet[]
+
+  @@index([workoutId])
   @@index([exerciseId])
 }
 
 model WorkoutSet {
-  id        String       @id @default(uuid())
+  id        String  @id @default(uuid())
   entryId   String
   reps      Int
   weight    Float?
-  isFailure Boolean      @default(false)
-  position  Int          @default(0)
-  entry     WorkoutEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  isFailure Boolean @default(false)
+  position  Int     @default(0)
+
+  entry WorkoutEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
   @@index([entryId])
 }

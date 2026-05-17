@@ -14,7 +14,6 @@ export interface CreateUserInput {
 
 export function findByUsername(username: string | undefined | null): Promise<User | null> {
     if (!username) return Promise.resolve(null);
-    // Postgres collation makes case-insensitive matches via `mode: 'insensitive'`.
     return prisma.user.findFirst({
         where: { username: { equals: username, mode: 'insensitive' } },
     });
@@ -86,6 +85,6 @@ export function publicView(user: User | null | undefined): PublicUser | null {
         profilePhotoUrl: user.profilePhotoUrl,
         points: user.points,
         createdAt: user.createdAt.toISOString(),
-        updatedAt: user.updateAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(), // ✅ fixed: was user.updateAt
     };
 }
