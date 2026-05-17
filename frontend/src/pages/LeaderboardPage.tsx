@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Avatar from '../component/Avatar';
+import Spinner from '../component/Spinner';
 import type { LeaderboardRow } from '../types';
 
 export default function LeaderboardPage() {
@@ -48,7 +49,13 @@ export default function LeaderboardPage() {
           onClick={() => load(true)}
           disabled={refreshing || loading}
         >
-          {refreshing ? 'Refreshing…' : '↻ Refresh'}
+          {refreshing ? (
+            <>
+              <Spinner size={14} inline /> Refreshing…
+            </>
+          ) : (
+            '↻ Refresh'
+          )}
         </button>
       </div>
 
@@ -69,7 +76,7 @@ export default function LeaderboardPage() {
 
       <section className="card">
         {loading ? (
-          <p className="muted">Loading…</p>
+          <Spinner size={28} label="Loading…" />
         ) : rows.length === 0 ? (
           <p className="muted">No rankings yet — log a workout to get on the board!</p>
         ) : (

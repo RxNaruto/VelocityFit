@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Avatar from '../component/Avatar';
+import Spinner from '../component/Spinner';
 import { formatPretty } from '../utils/dates';
 import type { PublicProfile } from '../types';
 
@@ -34,23 +35,20 @@ export default function UserProfilePage() {
         };
     }, [username]);
 
-    // Viewing your own /u/:username just shows the link to the private view.
     const isSelf = me && profile && me.id === profile.id;
 
     return (
         <div className="page">
             <div className="page-toolbar">
-                <Link to="/leaderboard" className="btn btn-ghost">
-                    ← Leaderboard
-                </Link>
-                {isSelf && (
-                    <Link to="/profile" className="btn btn-primary">
-                        Go to my profile
-                    </Link>
-                )}
+                <Link to="/leaderboard" className="btn btn-ghost">← Leaderboard</Link>
+                {isSelf && <Link to="/profile" className="btn btn-primary">Go to my profile</Link>}
             </div>
 
-            {loading && !profile && <div className="loading">Loading…</div>}
+            {loading && !profile && (
+                <div className="loading">
+                    <Spinner size={28} label="Loading…" />
+                </div>
+            )}
 
             {profile && (
                 <>
@@ -59,9 +57,7 @@ export default function UserProfilePage() {
                         <div className="profile-identity">
                             <h1>{profile.name}</h1>
                             <div className="muted">@{profile.username}</div>
-                            <div className="muted small">
-                                Joined {formatPretty(profile.createdAt?.slice(0, 10))}
-                            </div>
+                            <div className="muted small">Joined {formatPretty(profile.createdAt?.slice(0, 10))}</div>
                         </div>
                         <div className="profile-rank-pill">
                             <div className="profile-rank-label">Rank</div>
@@ -79,21 +75,9 @@ export default function UserProfilePage() {
                             <Stat label="Total workouts" value={profile.stats.totalWorkouts} />
                             <Stat label="Total sets" value={profile.stats.totalSets} />
                             <Stat label="Total reps" value={profile.stats.totalReps} />
-                            <Stat
-                                label="Volume (reps × kg)"
-                                value={Math.round(profile.stats.totalVolume).toLocaleString()}
-                            />
-                            <Stat
-                                label="Current streak"
-                                value={`${profile.stats.currentStreakDays} day${profile.stats.currentStreakDays === 1 ? '' : 's'}`}
-                            />
-                            <Stat
-                                label="Last session"
-                                value={
-                                    profile.stats.lastWorkout ? formatPretty(profile.stats.lastWorkout) : '—'
-                                }
-                                small
-                            />
+                            <Stat label="Volume (reps × kg)" value={Math.round(profile.stats.totalVolume).toLocaleString()} />
+                            <Stat label="Current streak" value={`${profile.stats.currentStreakDays} day${profile.stats.currentStreakDays === 1 ? '' : 's'}`} />
+                            <Stat label="Last session" value={profile.stats.lastWorkout ? formatPretty(profile.stats.lastWorkout) : '—'} small />
                         </div>
 
                         {profile.stats.topExercises.length > 0 && (

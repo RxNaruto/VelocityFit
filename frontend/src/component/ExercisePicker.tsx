@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useWorkouts } from '../context/WorkoutContext';
+import Spinner from './Spinner';
 import type { Exercise } from '../types';
 
 interface ExercisePickerProps {
@@ -27,7 +28,7 @@ export default function ExercisePicker({ muscleGroupId, onPick }: ExercisePicker
         };
     }, [muscleGroupId, getExercises]);
 
-    if (!exercises) return <div className="loading">Loading exercises…</div>;
+    if (!exercises) return <Spinner size={28} label="Loading exercises…" />;
     if (exercises.length === 0) {
         return <p className="muted">No exercises in this group yet.</p>;
     }

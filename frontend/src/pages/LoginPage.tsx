@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
+import Spinner from '../component/Spinner';
 
 export default function LoginPage() {
   const { signIn, isAuthenticated } = useAuth();
@@ -37,7 +38,7 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-brand">
-          <span className="brand-mark">V</span>
+          <span className="brand-mark">VF</span>
           <h1>VELOCITY FIT</h1>
           <p className="muted">Sign in to log your gym sessions.</p>
         </div>
@@ -64,7 +65,13 @@ export default function LoginPage() {
             />
           </label>
           <button type="submit" className="btn btn-primary btn-lg" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? (
+              <>
+                <Spinner size={16} inline /> Signing in…
+              </>
+            ) : (
+              'Sign in'
+            )}
           </button>
         </form>
         <p className="auth-switch">

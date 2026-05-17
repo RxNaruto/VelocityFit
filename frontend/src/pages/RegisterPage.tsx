@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
+import Spinner from '../component/Spinner';
 
 interface RegisterForm {
   username: string;
@@ -54,7 +55,7 @@ export default function RegisterPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-brand">
-          <span className="brand-mark">V</span>
+          <span className="brand-mark">VF</span>
           <h1>Join VELOCITY FIT</h1>
           <p className="muted">Start tracking your workouts in seconds.</p>
         </div>
@@ -97,9 +98,7 @@ export default function RegisterPage() {
             />
           </label>
           <label className="field">
-            <span>
-              Profile photo URL <em className="muted small">(optional)</em>
-            </span>
+            <span>Profile photo URL <em className="muted small">(optional)</em></span>
             <input
               type="url"
               placeholder="https://..."
@@ -108,7 +107,13 @@ export default function RegisterPage() {
             />
           </label>
           <button type="submit" className="btn btn-primary btn-lg" disabled={loading}>
-            {loading ? 'Creating…' : 'Create account'}
+            {loading ? (
+              <>
+                <Spinner size={16} inline /> Creating…
+              </>
+            ) : (
+              'Create account'
+            )}
           </button>
         </form>
         <p className="auth-switch">

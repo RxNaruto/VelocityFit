@@ -7,7 +7,13 @@ import MuscleGroupPicker from '../component/MuscleGroupPicker';
 import ExercisePicker from '../component/ExercisePicker';
 import SetLogger from '../component/SetLogger';
 import EntryList from '../component/EntryList';
-import type { EntryDraft, Exercise, MuscleGroup, WorkoutEntry } from '../types';
+import Spinner from '../component/Spinner';
+import type {
+    EntryDraft,
+    Exercise,
+    MuscleGroup,
+    WorkoutEntry,
+} from '../types';
 
 const STEP = {
     OVERVIEW: 'overview',
@@ -18,18 +24,19 @@ const STEP = {
 
 type Step = (typeof STEP)[keyof typeof STEP];
 
-// Local working copy of an entry — sets carry the not-yet-saved shape from
-// the SetLogger draft (numbers + null weight) plus a synthetic id so the
-// rendered list can be keyed safely.
 type DraftEntry = WorkoutEntry;
+
+function rid(prefix: string) {
+    return `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
+}
 
 function toDraftEntry(entry: EntryDraft): DraftEntry {
     return {
-        id: `tmp_${Math.random().toString(36).slice(2, 8)}`,
+        id: rid('tmp'),
         exerciseId: entry.exerciseId,
         notes: entry.notes,
-        sets: entry.sets.map((s, i) => ({
-            id: `tmp_set_${i}_${Math.random().toString(36).slice(2, 6)}`,
+        sets: entry.sets.map((s) => ({
+            id: rid('tmp_set'),
             reps: s.reps,
             weight: s.weight,
             isFailure: s.isFailure,
@@ -43,25 +50,54 @@ function toEntryDraft(entry: DraftEntry): EntryDraft {
         notes: entry.notes,
         sets: entry.sets.map((s) => ({
             reps: Number(s.reps) || 0,
-            weight: s.weight === null || (s.weight as unknown as string) === '' ? null : Number(s.weight),
+            weight:
+                s.weight === null || (s.weight as unknown as string) === ''
+                    ? null
+                    : Number(s.weight),
             isFailure: Boolean(s.isFailure),
         })),
     };
 }
 
+/**
+ * Collapse duplicate-exerciseId entries into a single entry whose sets are
+ * the concatenation of all duplicates' sets, in original order. Used on
+ * initial load (in case the backend already has duplicates) and on every
+ * add (so a re-pick of the same exercise extends the existing entry).
+ */
+function mergeDuplicateEntries(entries: DraftEntry[]): DraftEntry[] {
+    const byExerciseId = new Map<string, DraftEntry>();
+    for (const e of entries) {
+        const existing = byExerciseId.get(e.exerciseId);
+        if (!existing) {
+            byExerciseId.set(e.exerciseId, { ...e, sets: [...e.sets] });
+            continue;
+        }
+        existing.sets = [...existing.sets, ...e.sets];
+        if (e.notes && e.notes !== existing.notes) {
+            existing.notes = existing.notes
+                ? `${existing.notes}\n${e.notes}`
+                : e.notes;
+        }
+    }
+    return Array.from(byExerciseId.values());
+}
+
 export default function AddWorkoutPage() {
     const navigate = useNavigate();
-    const { workoutsByDate, saveToday, getExercises, exerciseLookup } = useWorkouts();
+    const { workoutsByDate, saveToday, getExercises, exerciseLookup, muscleGroupLookup } =
+        useWorkouts();
     const today = todayKey();
     const existing = workoutsByDate[today];
 
     const [step, setStep] = useState<Step>(STEP.OVERVIEW);
-    const [entries, setEntries] = useState<DraftEntry[]>(() => existing?.entries || []);
+    const [entries, setEntries] = useState<DraftEntry[]>(() =>
+        mergeDuplicateEntries(existing?.entries || [])
+    );
     const [selectedGroup, setSelectedGroup] = useState<MuscleGroup | null>(null);
     const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
     const [saving, setSaving] = useState(false);
 
-    // Preload exercise names referenced by existing entries (so labels render).
     useEffect(() => {
         if (!existing) return;
         const groupIds = new Set<string>();
@@ -88,10 +124,43 @@ export default function AddWorkoutPage() {
     }
 
     function handleAddEntry(entry: EntryDraft) {
-        setEntries((prev) => [...prev, toDraftEntry(entry)]);
+        let merged = false;
+        setEntries((prev) => {
+            const existingIdx = prev.findIndex((e) => e.exerciseId === entry.exerciseId);
+            if (existingIdx === -1) return [...prev, toDraftEntry(entry)];
+            merged = true;
+            const next = [...prev];
+            const existingEntry = next[existingIdx];
+            const newSets = entry.sets.map((s) => ({
+                id: rid('tmp_set'),
+                reps: s.reps,
+                weight: s.weight,
+                isFailure: s.isFailure,
+            }));
+            next[existingIdx] = {
+                ...existingEntry,
+                sets: [...existingEntry.sets, ...newSets],
+                notes: entry.notes
+                    ? existingEntry.notes
+                        ? `${existingEntry.notes}\n${entry.notes}`
+                        : entry.notes
+                    : existingEntry.notes,
+            };
+            return next;
+        });
+
+        const exerciseName = exerciseLookup[entry.exerciseId]?.name || 'exercise';
+        if (merged) {
+            toast.success(`Added ${entry.sets.length} more set(s) to ${exerciseName}`);
+        } else {
+            toast.success(`Added ${exerciseName} to workout`);
+        }
+
+        // After adding, step back through the wizard: stay on the same muscle
+        // group's exercise list so you can quickly add another. Use the toolbar
+        // back button (or the "Done" button) to return to the overview.
         setSelectedExercise(null);
-        setSelectedGroup(null);
-        setStep(STEP.OVERVIEW);
+        setStep(STEP.PICK_EXERCISE);
     }
 
     function handleRemoveEntry(idx: number) {
@@ -112,13 +181,15 @@ export default function AddWorkoutPage() {
         }
     }
 
-    function handleCancel() {
+    // Toolbar back. Walks the wizard back one step at a time, exactly mirroring
+    // the forward path: OVERVIEW → PICK_GROUP → PICK_EXERCISE → LOG_SETS.
+    function handleBack() {
         if (step === STEP.LOG_SETS) {
-            setStep(STEP.PICK_EXERCISE);
             setSelectedExercise(null);
+            setStep(STEP.PICK_EXERCISE);
         } else if (step === STEP.PICK_EXERCISE) {
-            setStep(STEP.PICK_GROUP);
             setSelectedGroup(null);
+            setStep(STEP.PICK_GROUP);
         } else if (step === STEP.PICK_GROUP) {
             setStep(STEP.OVERVIEW);
         } else {
@@ -126,14 +197,45 @@ export default function AddWorkoutPage() {
         }
     }
 
+    function jumpTo(target: Step) {
+        if (target === STEP.OVERVIEW) {
+            setSelectedExercise(null);
+            setSelectedGroup(null);
+        } else if (target === STEP.PICK_GROUP) {
+            setSelectedExercise(null);
+            setSelectedGroup(null);
+        } else if (target === STEP.PICK_EXERCISE) {
+            setSelectedExercise(null);
+        }
+        setStep(target);
+    }
+
+    // ── Render helpers ───────────────────────────────────────────────────
+    const groupName =
+        selectedGroup?.name ||
+        (selectedExercise && muscleGroupLookup[
+            exerciseLookup[selectedExercise.id]?.muscleGroupId || ''
+        ]?.name) ||
+        null;
+    const exerciseName = selectedExercise?.name || null;
+
     return (
         <div className="page">
             <div className="page-toolbar">
-                <button type="button" className="btn btn-ghost" onClick={handleCancel}>
+                <button type="button" className="btn btn-ghost" onClick={handleBack}>
                     ← Back
                 </button>
                 <div className="muted small">{formatPretty(today)}</div>
             </div>
+
+            {step !== STEP.OVERVIEW && (
+                <Breadcrumb
+                    step={step}
+                    groupName={groupName}
+                    exerciseName={exerciseName}
+                    onJump={jumpTo}
+                />
+            )}
 
             {step === STEP.OVERVIEW && (
                 <>
@@ -160,7 +262,13 @@ export default function AddWorkoutPage() {
                             disabled={entries.length === 0 || saving}
                             onClick={handleSave}
                         >
-                            {saving ? 'Saving…' : 'Save workout'}
+                            {saving ? (
+                                <>
+                                    <Spinner size={16} inline /> Saving…
+                                </>
+                            ) : (
+                                'Save workout'
+                            )}
                         </button>
                     </div>
                 </>
@@ -175,7 +283,16 @@ export default function AddWorkoutPage() {
 
             {step === STEP.PICK_EXERCISE && selectedGroup && (
                 <>
-                    <h1>{selectedGroup.name} exercises</h1>
+                    <div className="step-header">
+                        <h1>{selectedGroup.name} exercises</h1>
+                        <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => jumpTo(STEP.OVERVIEW)}
+                        >
+                            Done
+                        </button>
+                    </div>
                     <ExercisePicker muscleGroupId={selectedGroup.id} onPick={handlePickExercise} />
                 </>
             )}
@@ -183,9 +300,59 @@ export default function AddWorkoutPage() {
             {step === STEP.LOG_SETS && selectedExercise && (
                 <>
                     <h1>{selectedExercise.name}</h1>
-                    <SetLogger exercise={selectedExercise} onAdd={handleAddEntry} onCancel={handleCancel} />
+                    <SetLogger exercise={selectedExercise} onAdd={handleAddEntry} onCancel={handleBack} />
                 </>
             )}
         </div>
+    );
+}
+
+interface BreadcrumbProps {
+    step: Step;
+    groupName: string | null;
+    exerciseName: string | null;
+    onJump: (target: Step) => void;
+}
+
+function Breadcrumb({ step, groupName, exerciseName, onJump }: BreadcrumbProps) {
+    return (
+        <nav className="breadcrumb" aria-label="Wizard steps">
+            <button
+                type="button"
+                className="breadcrumb-item"
+                onClick={() => onJump(STEP.OVERVIEW)}
+            >
+                Overview
+            </button>
+            <span className="breadcrumb-sep">›</span>
+            <button
+                type="button"
+                className={`breadcrumb-item${step === STEP.PICK_GROUP ? ' is-current' : ''}`}
+                onClick={() => onJump(STEP.PICK_GROUP)}
+            >
+                Muscle group
+            </button>
+            {(step === STEP.PICK_EXERCISE || step === STEP.LOG_SETS) && (
+                <>
+                    <span className="breadcrumb-sep">›</span>
+                    <button
+                        type="button"
+                        className={`breadcrumb-item${step === STEP.PICK_EXERCISE ? ' is-current' : ''}`}
+                        onClick={() => onJump(STEP.PICK_EXERCISE)}
+                        disabled={!groupName}
+                    >
+                        {groupName || 'Exercise'}
+                    </button>
+                </>
+            )}
+            {step === STEP.LOG_SETS && (
+                <>
+                    <span className="breadcrumb-sep">›</span>
+                    <span className="breadcrumb-item is-current" aria-current="step">
+                        {exerciseName || 'Log sets'}
+                    </span>
+                </>
+            )}
+        </nav>
     );
 }
