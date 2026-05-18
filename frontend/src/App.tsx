@@ -20,7 +20,8 @@ import { WorkoutProvider, useWorkouts } from './context/WorkoutContext';
 export default function App() {
   const { isAuthenticated, bootstrapping } = useAuth();
   const location = useLocation();
-  const onAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const onAuthPage =
+    location.pathname === '/login' || location.pathname === '/register';
 
   return (
     <div className="app-shell">
@@ -32,7 +33,11 @@ export default function App() {
           </Link>
           {isAuthenticated && (
             <nav className="app-nav">
-              <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-active' : '')}>
+              <NavLink
+                to="/"
+                end
+                className={({ isActive }) => (isActive ? 'is-active' : '')}
+              >
                 Home
               </NavLink>
               <NavLink
@@ -57,8 +62,15 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
 
+            {/*
+                         * KEY FIX: Every protected route is declared individually
+                         * at the top level instead of being nested under a single
+                         * "/*" wildcard. This guarantees React Router matches
+                         * deep paths like /admin/exercises without the nested-Routes
+                         * prefix-stripping quirk swallowing the segment.
+                         */}
             <Route
-              path="/*"
+              path="/"
               element={
                 <ProtectedRoute>
                   <WorkoutProvider>
@@ -67,13 +79,76 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/day/:date"
+              element={
+                <ProtectedRoute>
+                  <WorkoutProvider>
+                    <ProtectedShell />
+                  </WorkoutProvider>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/add"
+              element={
+                <ProtectedRoute>
+                  <WorkoutProvider>
+                    <ProtectedShell />
+                  </WorkoutProvider>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <WorkoutProvider>
+                    <ProtectedShell />
+                  </WorkoutProvider>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/leaderboard"
+              element={
+                <ProtectedRoute>
+                  <WorkoutProvider>
+                    <ProtectedShell />
+                  </WorkoutProvider>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/u/:username"
+              element={
+                <ProtectedRoute>
+                  <WorkoutProvider>
+                    <ProtectedShell />
+                  </WorkoutProvider>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/exercises"
+              element={
+                <ProtectedRoute>
+                  <WorkoutProvider>
+                    <ProtectedShell />
+                  </WorkoutProvider>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Fallback — redirect unknown paths to home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         )}
       </main>
 
       {!onAuthPage && (
         <footer className="app-footer">
-          <small>VELOCITY FIT • Train hard. Stay consistent.</small>
+          <small>VELOCITY FIT • Rithk Chaudhary.</small>
         </footer>
       )}
     </div>
@@ -82,6 +157,7 @@ export default function App() {
 
 function ProtectedShell() {
   const { loading, error } = useWorkouts();
+
   // Surface load errors via toast (avoids stacking duplicate banners across renders).
   const lastErrorRef = useRef<string | null>(null);
   useEffect(() => {
@@ -97,6 +173,7 @@ function ProtectedShell() {
         <Spinner size={32} label="Loading your workouts…" />
       </div>
     );
+
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
