@@ -11,6 +11,7 @@ import type { WorkoutDTO } from '../types/domain.js';
  *     exercises     = 5  * # of exercise entries
  *     sets          = 2  * total # of sets across entries
  *     failure sets  = 3  * # of sets marked as taken to failure
+ *     drop segments = 2  * # of drop-set segments (each drop counts once)
  *     streak bonus  = min(streakDays * 5, 100)
  */
 export const POINTS = {
@@ -18,15 +19,23 @@ export const POINTS = {
   PER_EXERCISE: 5,
   PER_SET: 2,
   PER_FAILURE_SET: 3,
+  PER_DROP_SEGMENT: 2,
   STREAK_PER_DAY: 5,
   STREAK_BONUS_CAP: 100,
 } as const;
 
 function isNextDay(prevKey: string | null, key: string): boolean {
   if (!prevKey || !key) return false;
-  const parts = prevKey.split('-');
-  if (parts.length !== 3) return false;
-  const [py, pm, pd] = parts.map(Number) as [number, number, number];
+
+  // Fix 5: `.map(Number)` returns `number[]` whose elements are
+  // `number | undefined` under noUncheckedIndexedAccess.
+  // Destructure into named variables and supply fallbacks so TypeScript
+  // knows they are always `number`.
+  const parts = prevKey.split('-').map(Number);
+  const py = parts[0] ?? 0;
+  const pm = parts[1] ?? 0;
+  const pd = parts[2] ?? 0;
+
   const next = new Date(py, pm - 1, pd);
   next.setDate(next.getDate() + 1);
   const nKey = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(
@@ -39,18 +48,25 @@ function streakBonus(streakDays: number): number {
   return Math.min(streakDays * POINTS.STREAK_PER_DAY, POINTS.STREAK_BONUS_CAP);
 }
 
-export function pointsForWorkout(workout: WorkoutDTO | null | undefined, streakDays = 1): number {
+export function pointsForWorkout(
+  workout: WorkoutDTO | null | undefined,
+  streakDays = 1
+): number {
   if (!workout || !Array.isArray(workout.entries)) return 0;
   const exerciseCount = workout.entries.length;
   if (exerciseCount === 0) return 0;
 
   let setCount = 0;
   let failureSetCount = 0;
+  let dropSegmentCount = 0;
 
   workout.entries.forEach((e) => {
     if (!Array.isArray(e.sets)) return;
     setCount += e.sets.length;
-    failureSetCount += e.sets.filter((s) => s && s.isFailure).length;
+    e.sets.forEach((s) => {
+      if (s && s.isFailure) failureSetCount += 1;
+      if (s && Array.isArray(s.drops)) dropSegmentCount += s.drops.length;
+    });
   });
 
   return (
@@ -58,6 +74,7 @@ export function pointsForWorkout(workout: WorkoutDTO | null | undefined, streakD
     POINTS.PER_EXERCISE * exerciseCount +
     POINTS.PER_SET * setCount +
     POINTS.PER_FAILURE_SET * failureSetCount +
+    POINTS.PER_DROP_SEGMENT * dropSegmentCount +
     streakBonus(Math.max(1, streakDays))
   );
 }
@@ -71,7 +88,6 @@ export async function totalPointsForUser(userId: string): Promise<number> {
   if (workouts.length === 0) return 0;
 
   const sorted = [...workouts].sort((a, b) => (a.date < b.date ? -1 : 1));
-
   let total = 0;
   let streak = 0;
   let prevDate: string | null = null;
@@ -81,7 +97,6 @@ export async function totalPointsForUser(userId: string): Promise<number> {
     total += pointsForWorkout(w, streak);
     prevDate = w.date;
   }
-
   return total;
 }
 

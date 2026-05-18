@@ -60,6 +60,14 @@ export default function UserMenu() {
                     >
                         Calendar
                     </Link>
+                    <Link
+                        to="/admin/exercises"
+                        className="user-menu-item"
+                        onClick={() => setOpen(false)}
+                        role="menuitem"
+                    >
+                        Manage exercises
+                    </Link>
                     <button
                         type="button"
                         className="user-menu-item user-menu-item-danger"

@@ -40,6 +40,11 @@ function toDraftEntry(entry: EntryDraft): DraftEntry {
             reps: s.reps,
             weight: s.weight,
             isFailure: s.isFailure,
+            drops: (s.drops || []).map((d) => ({
+                id: rid('tmp_drop'),
+                reps: d.reps,
+                weight: d.weight,
+            })),
         })),
     };
 }
@@ -55,6 +60,13 @@ function toEntryDraft(entry: DraftEntry): EntryDraft {
                     ? null
                     : Number(s.weight),
             isFailure: Boolean(s.isFailure),
+            drops: (s.drops || []).map((d) => ({
+                reps: Number(d.reps) || 0,
+                weight:
+                    d.weight === null || (d.weight as unknown as string) === ''
+                        ? null
+                        : Number(d.weight),
+            })),
         })),
     };
 }
@@ -136,6 +148,11 @@ export default function AddWorkoutPage() {
                 reps: s.reps,
                 weight: s.weight,
                 isFailure: s.isFailure,
+                drops: (s.drops || []).map((d) => ({
+                    id: rid('tmp_drop'),
+                    reps: d.reps,
+                    weight: d.weight,
+                })),
             }));
             next[existingIdx] = {
                 ...existingEntry,

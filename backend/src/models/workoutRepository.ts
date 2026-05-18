@@ -1,12 +1,21 @@
 import prisma from '../data/prisma.js';
 import type { Prisma } from '@prisma/client';
-import type { EntryDTO, EntryInput, SetInput, WorkoutDTO } from '../types/domain.js';
+import type {
+    EntryDTO,
+    EntryInput,
+    SetDropInput,
+    SetInput,
+    WorkoutDTO,
+} from '../types/domain.js';
 
 const workoutInclude = {
     entries: {
         orderBy: { position: 'asc' as const },
         include: {
-            sets: { orderBy: { position: 'asc' as const } },
+            sets: {
+                orderBy: { position: 'asc' as const },
+                include: { drops: { orderBy: { position: 'asc' as const } } },
+            },
         },
     },
 } satisfies Prisma.WorkoutInclude;
@@ -29,32 +38,59 @@ function toDTO(w: WorkoutWithRelations): WorkoutDTO {
                 reps: s.reps,
                 weight: s.weight,
                 isFailure: s.isFailure,
+                drops: s.drops.map((d) => ({
+                    id: d.id,
+                    reps: d.reps,
+                    weight: d.weight,
+                })),
             })),
         })),
     };
 }
 
-function normalizeSets(sets: SetInput[] | undefined): Prisma.WorkoutSetCreateWithoutEntryInput[] {
+function normalizeDrops(
+    drops: SetDropInput[] | undefined
+): Prisma.SetDropCreateWithoutSetInput[] {
+    return (drops || [])
+        .map((d, i) => {
+            const reps = Number(d.reps) || 0;
+            const weight =
+                d.weight === null || d.weight === undefined || d.weight === ''
+                    ? null
+                    : Number(d.weight);
+            return { reps, weight, position: i };
+        })
+        .filter((d) => Number.isFinite(d.reps) && d.reps > 0);
+}
+
+function normalizeSets(
+    sets: SetInput[] | undefined
+): Prisma.WorkoutSetCreateWithoutEntryInput[] {
     return (sets || []).map((s, i) => {
         const reps = Number(s.reps) || 0;
         const weight =
             s.weight === null || s.weight === undefined || s.weight === ''
                 ? null
                 : Number(s.weight);
+        const drops = normalizeDrops(s.drops);
         return {
             reps,
             weight,
             isFailure: Boolean(s.isFailure),
             position: i,
+            ...(drops.length > 0 ? { drops: { create: drops } } : {}),
         };
     });
 }
 
 function normalizeEntries(
     entries: EntryInput[]
-): Prisma.WorkoutEntryUncheckedCreateWithoutWorkoutInput[] {
+): Prisma.WorkoutEntryCreateWithoutWorkoutInput[] {
     return entries.map((entry, i) => ({
-        exerciseId: entry.exerciseId,
+        // Fix 4: Prisma requires the relation form { connect } rather than
+        // the bare scalar `exerciseId` when exactOptionalPropertyTypes /
+        // strict Prisma types flag the scalar as insufficient.
+        exercise: { connect: { id: entry.exerciseId } },
         notes: entry.notes || '',
         position: i,
         sets: { create: normalizeSets(entry.sets) },
@@ -147,14 +183,13 @@ export async function update(
     id: string,
     patch: UpdateWorkoutPatch
 ): Promise<WorkoutDTO | null> {
-    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    return prisma.$transaction(async (tx) => {
         const existing = await tx.workout.findUnique({ where: { id } });
         if (!existing) return null;
 
         if (patch.entries) {
-            await tx.workoutEntry.deleteMany({ where: { workoutId: id } }); // ✅ fixed: was WorkoutId
+            await tx.workoutEntry.deleteMany({ where: { workoutId: id } });
         }
-
         const updated = await tx.workout.update({
             where: { id },
             data: {

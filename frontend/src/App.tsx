@@ -9,6 +9,7 @@ import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import UserProfilePage from './pages/UserProfilePage';
+import ManageExercisesPage from './pages/ManageExercisesPage';
 import ProtectedRoute from './component/ProtectedRoute';
 import UserMenu from './component/UserMenu';
 import Spinner from './component/Spinner';
@@ -72,7 +73,7 @@ export default function App() {
 
       {!onAuthPage && (
         <footer className="app-footer">
-          <small>VELOCITY FIT • Rithk Chaudhary.</small>
+          <small>VELOCITY FIT • Train hard. Stay consistent.</small>
         </footer>
       )}
     </div>
@@ -104,6 +105,7 @@ function ProtectedShell() {
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/leaderboard" element={<LeaderboardPage />} />
       <Route path="/u/:username" element={<UserProfilePage />} />
+      <Route path="/admin/exercises" element={<ManageExercisesPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

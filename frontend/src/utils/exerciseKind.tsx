@@ -1,4 +1,4 @@
-import type { Exercise, MuscleGroup, WorkoutSet } from '../types';
+import type { Exercise, MuscleGroup, Workout, WorkoutEntry, WorkoutSet } from '../types';
 
 /** Slug of the Cardio muscle group. Kept only for purely cosmetic decisions
  *  (e.g. the blue cardio set-pill tint). Logic that decides whether an
@@ -70,4 +70,33 @@ export function describeSet(set: WorkoutSet, timeBased: boolean): string {
     const hasWeight =
         weight !== null && weight !== undefined && (weight as unknown as string) !== '';
     return hasWeight ? `${set.reps} × ${weight}` : String(set.reps);
+}
+
+/**
+ * Look up the most recent past workout (strictly before `todayKey`) that
+ * contained a non-empty entry for `exerciseId`, so we can pre-fill the
+ * set logger and show a "Last session" reference.
+ *
+ * The scan is a tiny linear walk of the in-memory `workoutsByDate` map —
+ * cheap even for years of history.
+ */
+export function findLastSessionFor(
+    workoutsByDate: Record<string, Workout>,
+    exerciseId: string,
+    todayKey: string
+): { date: string; entry: WorkoutEntry } | null {
+    if (!exerciseId) return null;
+    const dates = Object.keys(workoutsByDate)
+        .filter((d) => d < todayKey)
+        .sort()
+        .reverse();
+    for (const d of dates) {
+        const w = workoutsByDate[d];
+        if (!w || !Array.isArray(w.entries)) continue;
+        const entry = w.entries.find(
+            (e) => e.exerciseId === exerciseId && Array.isArray(e.sets) && e.sets.length > 0
+        );
+        if (entry) return { date: d, entry };
+    }
+    return null;
 }

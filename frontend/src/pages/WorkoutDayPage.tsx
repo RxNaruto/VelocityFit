@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useWorkouts } from '../context/WorkoutContext';
 import Spinner from '../component/Spinner';
@@ -87,19 +87,53 @@ export default function WorkoutDayPage() {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {entry.sets.map((s, i) => (
-                                                    <tr key={s.id}>
-                                                        <td>{i + 1}</td>
-                                                        {timeBased ? (
-                                                            <td colSpan={2}>{formatDuration(s.reps)} min</td>
-                                                        ) : (
-                                                            <>
-                                                                <td>{s.reps}</td>
-                                                                <td>{s.weight ?? '—'}</td>
-                                                            </>
-                                                        )}
-                                                    </tr>
-                                                ))}
+                                                {entry.sets.map((s, i) => {
+                                                    const drops = Array.isArray(s.drops) ? s.drops : [];
+                                                    const hasDrops = !timeBased && drops.length > 0;
+                                                    const totalReps =
+                                                        (Number(s.reps) || 0) +
+                                                        drops.reduce((sum, d) => sum + (Number(d.reps) || 0), 0);
+                                                    return (
+                                                        <Fragment key={s.id}>
+                                                            <tr className={hasDrops ? 'is-drop-parent' : undefined}>
+                                                                <td>
+                                                                    {i + 1}
+                                                                    {s.isFailure && (
+                                                                        <span className="set-row-badge" title="Set to failure">
+                                                                            F
+                                                                        </span>
+                                                                    )}
+                                                                    {hasDrops && (
+                                                                        <span
+                                                                            className="set-row-badge set-row-badge-drop"
+                                                                            title={`Drop set — ${totalReps} total reps`}
+                                                                        >
+                                                                            D{drops.length}
+                                                                        </span>
+                                                                    )}
+                                                                </td>
+                                                                {timeBased ? (
+                                                                    <td colSpan={2}>{formatDuration(s.reps)} min</td>
+                                                                ) : (
+                                                                    <>
+                                                                        <td>{s.reps}</td>
+                                                                        <td>{s.weight ?? '—'}</td>
+                                                                    </>
+                                                                )}
+                                                            </tr>
+                                                            {hasDrops &&
+                                                                drops.map((d, j) => (
+                                                                    <tr key={d.id} className="drop-tr">
+                                                                        <td className="drop-tr-num">
+                                                                            <span aria-hidden="true">↳</span> drop {j + 1}
+                                                                        </td>
+                                                                        <td>{d.reps}</td>
+                                                                        <td>{d.weight ?? '—'}</td>
+                                                                    </tr>
+                                                                ))}
+                                                        </Fragment>
+                                                    );
+                                                })}
                                             </tbody>
                                         </table>
                                         {entry.notes && <p className="entry-notes">{entry.notes}</p>}

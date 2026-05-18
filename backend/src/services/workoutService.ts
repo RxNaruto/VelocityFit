@@ -47,6 +47,38 @@ async function validateEntries(entries: EntryInput[] | undefined): Promise<void>
                     throw new HttpError(400, `entries[${i}].sets[${j}].weight must be >= 0`);
                 }
             }
+            // Optional drop-set segments. Each one is validated like a mini-set
+            // (reps & optional weight). Empty rows get filtered downstream — we
+            // only fail on actively-invalid numbers.
+            if (s.drops !== undefined && s.drops !== null) {
+                if (!Array.isArray(s.drops)) {
+                    throw new HttpError(400, `entries[${i}].sets[${j}].drops must be an array`);
+                }
+                s.drops.forEach((d, k) => {
+                    if (d == null || typeof d !== 'object') {
+                        throw new HttpError(
+                            400,
+                            `entries[${i}].sets[${j}].drops[${k}] must be an object`
+                        );
+                    }
+                    const dReps = Number(d.reps);
+                    if (!Number.isFinite(dReps) || dReps < 0) {
+                        throw new HttpError(
+                            400,
+                            `entries[${i}].sets[${j}].drops[${k}].reps must be >= 0`
+                        );
+                    }
+                    if (d.weight !== null && d.weight !== undefined && d.weight !== '') {
+                        const dw = Number(d.weight);
+                        if (!Number.isFinite(dw) || dw < 0) {
+                            throw new HttpError(
+                                400,
+                                `entries[${i}].sets[${j}].drops[${k}].weight must be >= 0`
+                            );
+                        }
+                    }
+                });
+            }
         });
     });
 }
@@ -118,5 +150,3 @@ export async function deleteWorkout(userId: string, id: string): Promise<boolean
     await pointsService.onWorkoutChanged(userId);
     return ok;
 }
-
-
