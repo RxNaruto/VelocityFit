@@ -18,6 +18,16 @@ export interface Exercise {
   id: string;
   name: string;
   muscleGroupId: string;
+  /** Time-per-set instead of reps × weight (cardio + isometrics like Plank,
+   *  Dead Hang, Farmer's Walk/Carry, Wall Sit, …). Optional on the wire so
+   *  older servers / cached responses default to `false`. */
+  tracksTime?: boolean;
+}
+
+export interface SetDrop {
+  id: string;
+  reps: number;
+  weight: number | null;
 }
 
 export interface WorkoutSet {
@@ -25,6 +35,9 @@ export interface WorkoutSet {
   reps: number;
   weight: number | null;
   isFailure: boolean;
+  /** Optional drop-set segments performed back-to-back with no rest
+   *  after the main set hit failure. Defaulted to []. */
+  drops: SetDrop[];
 }
 
 export interface SetDraft {
@@ -48,17 +61,27 @@ export interface EntryDraft {
     reps: number;
     weight: number | null;
     isFailure: boolean;
+    drops?: Array<{ reps: number; weight: number | null }>;
   }>;
 }
-export interface Exercise {
-  id: string;
+
+export interface NewExercisePayload {
   name: string;
   muscleGroupId: string;
-  /** Time-per-set instead of reps × weight (cardio + isometrics like Plank,
-   *  Dead Hang, Farmer's Walk/Carry, Wall Sit, …). Optional on the wire so
-   *  older servers / cached responses default to `false`. */
   tracksTime?: boolean;
 }
+
+export interface NewMuscleGroupPayload {
+  name: string;
+  slug?: string;
+}
+
+export interface UpdateExercisePayload {
+  name?: string;
+  muscleGroupId?: string;
+  tracksTime?: boolean;
+}
+
 export interface Workout {
   id: string;
   userId: string;

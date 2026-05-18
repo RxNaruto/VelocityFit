@@ -102,6 +102,25 @@ model WorkoutSet {
   position  Int     @default(0)
 
   entry WorkoutEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  // Optional "drop set" segments performed back-to-back with no rest after
+  // hitting failure on the parent set. Example: 10 reps @ 50kg (failure) →
+  // 6 reps @ 40kg. Counted as a single set with 16 total reps.
+  drops SetDrop[]
 
   @@index([entryId])
+}
+
+// One contiguous drop segment that belongs to a WorkoutSet. Captured in
+// chronological order via `position` (0-based). A set with no drops is the
+// classic single-segment set; the model is fully backward compatible.
+model SetDrop {
+  id       String @id @default(uuid())
+  setId    String
+  reps     Int
+  weight   Float?
+  position Int    @default(0)
+
+  set WorkoutSet @relation(fields: [setId], references: [id], onDelete: Cascade)
+
+  @@index([setId])
 }

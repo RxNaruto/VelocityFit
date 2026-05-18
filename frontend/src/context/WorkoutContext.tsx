@@ -1,4 +1,3 @@
-
 import {
     createContext,
     useCallback,
@@ -9,7 +8,15 @@ import {
     type ReactNode,
 } from 'react';
 import { api } from '../services/api';
-import type { EntryDraft, Exercise, MuscleGroup, Workout } from '../types';
+import type {
+    EntryDraft,
+    Exercise,
+    MuscleGroup,
+    NewExercisePayload,
+    NewMuscleGroupPayload,
+    UpdateExercisePayload,
+    Workout,
+} from '../types';
 
 interface WorkoutContextValue {
     muscleGroups: MuscleGroup[];
@@ -22,6 +29,11 @@ interface WorkoutContextValue {
     getExercises: (muscleGroupId: string) => Promise<Exercise[]>;
     saveToday: (entries: EntryDraft[]) => Promise<Workout>;
     refreshDate: (dateKey: string) => Promise<Workout | null>;
+    // Catalog mutations used by the "Manage exercises" portal.
+    createMuscleGroup: (payload: NewMuscleGroupPayload) => Promise<MuscleGroup>;
+    createExercise: (payload: NewExercisePayload) => Promise<Exercise>;
+    updateExercise: (id: string, patch: UpdateExercisePayload) => Promise<Exercise>;
+    deleteExercise: (id: string) => Promise<void>;
 }
 
 const WorkoutContext = createContext<WorkoutContextValue | null>(null);
@@ -104,6 +116,69 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         return w;
     }, []);
 
+    const createMuscleGroup = useCallback(
+        async (payload: NewMuscleGroupPayload): Promise<MuscleGroup> => {
+            const created = await api.createMuscleGroup(payload);
+            setMuscleGroups((prev) =>
+                [...prev.filter((g) => g.id !== created.id), created].sort((a, b) =>
+                    a.name.localeCompare(b.name)
+                )
+            );
+            // Pre-warm an empty bucket so the picker shows the new group.
+            setExercisesByGroup((prev) => ({ ...prev, [created.id]: prev[created.id] || [] }));
+            return created;
+        },
+        []
+    );
+
+    const createExercise = useCallback(
+        async (payload: NewExercisePayload): Promise<Exercise> => {
+            const created = await api.createExercise(payload);
+            setExercisesByGroup((prev) => {
+                const list = prev[created.muscleGroupId] || [];
+                const next = [...list.filter((e) => e.id !== created.id), created].sort((a, b) =>
+                    a.name.localeCompare(b.name)
+                );
+                return { ...prev, [created.muscleGroupId]: next };
+            });
+            return created;
+        },
+        []
+    );
+
+    const updateExercise = useCallback(
+        async (id: string, patch: UpdateExercisePayload): Promise<Exercise> => {
+            const updated = await api.updateExercise(id, patch);
+            setExercisesByGroup((prev) => {
+                // Drop the old row from every bucket — its group may have changed —
+                // then insert it into the (possibly new) target group's bucket.
+                const next: Record<string, Exercise[]> = {};
+                for (const [groupId, list] of Object.entries(prev)) {
+                    next[groupId] = list.filter((e) => e.id !== id);
+                }
+                const target = updated.muscleGroupId;
+                const targetList = next[target] || [];
+                next[target] = [...targetList, updated].sort((a, b) =>
+                    a.name.localeCompare(b.name)
+                );
+                return next;
+            });
+            return updated;
+        },
+        []
+    );
+
+    const deleteExercise = useCallback(async (id: string): Promise<void> => {
+        await api.deleteExercise(id);
+        setExercisesByGroup((prev) => {
+            const next: Record<string, Exercise[]> = {};
+            for (const [groupId, list] of Object.entries(prev)) {
+                next[groupId] = list.filter((e) => e.id !== id);
+            }
+            return next;
+        });
+    }, []);
+
     const value: WorkoutContextValue = {
         muscleGroups,
         muscleGroupLookup,
@@ -115,6 +190,10 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         getExercises,
         saveToday,
         refreshDate,
+        createMuscleGroup,
+        createExercise,
+        updateExercise,
+        deleteExercise,
     };
 
     return <WorkoutContext.Provider value={value}>{children}</WorkoutContext.Provider>;

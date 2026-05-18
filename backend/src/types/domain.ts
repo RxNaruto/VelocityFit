@@ -8,11 +8,19 @@ export interface PublicUser {
     updatedAt: string;
 }
 
+export interface SetDropDTO {
+    id: string;
+    reps: number;
+    weight: number | null;
+}
+
 export interface SetDTO {
     id: string;
     reps: number;
     weight: number | null;
     isFailure: boolean;
+    /** Optional drop-set segments, in chronological order. */
+    drops: SetDropDTO[];
 }
 
 export interface EntryDTO {
@@ -31,11 +39,19 @@ export interface WorkoutDTO {
     updatedAt: string;
 }
 
+export interface SetDropInput {
+    id?: string;
+    reps: number | string;
+    weight?: number | string | null;
+}
+
 export interface SetInput {
     id?: string;
     reps: number | string;
     weight?: number | string | null;
     isFailure?: boolean;
+    /** Optional drop-set segments (no rest after the parent set's failure). */
+    drops?: SetDropInput[];
 }
 
 export interface EntryInput {
@@ -43,6 +59,26 @@ export interface EntryInput {
     exerciseId: string;
     notes?: string;
     sets: SetInput[];
+}
+
+/** Payload accepted by the catalog-admin endpoints. */
+export interface MuscleGroupInput {
+    id?: string;
+    slug: string;
+    name: string;
+}
+
+export interface ExerciseInput {
+    id?: string;
+    name: string;
+    muscleGroupId: string;
+    tracksTime?: boolean;
+}
+
+export interface ExerciseUpdateInput {
+    name?: string;
+    muscleGroupId?: string;
+    tracksTime?: boolean;
 }
 
 export interface MuscleGroupDTO {

@@ -110,6 +110,7 @@ function aggregate(
             if (groupId) {
                 groupCount[groupId] = (groupCount[groupId] || 0) + 1;
             }
+
             if (!exerciseStats[entry.exerciseId]) {
                 exerciseStats[entry.exerciseId] = {
                     exerciseId: entry.exerciseId,
@@ -121,6 +122,12 @@ function aggregate(
                     reps: 0,
                 };
             }
+
+            // Fix 6: noUncheckedIndexedAccess makes exerciseStats[key] possibly
+            // undefined even right after we initialised it above. The non-null
+            // assertion is safe here because we unconditionally wrote the value
+            // in the block above.
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const s = exerciseStats[entry.exerciseId]!;
             s.entries += 1;
             entry.sets.forEach((set) => {
@@ -132,6 +139,16 @@ function aggregate(
                 if (set.isFailure) failureSets += 1;
                 if (set.weight != null) {
                     totalVolume += reps * (Number(set.weight) || 0);
+                }
+                if (Array.isArray(set.drops)) {
+                    set.drops.forEach((d) => {
+                        const dReps = Number(d.reps) || 0;
+                        totalReps += dReps;
+                        s.reps += dReps;
+                        if (d.weight != null) {
+                            totalVolume += dReps * (Number(d.weight) || 0);
+                        }
+                    });
                 }
             });
         });
@@ -164,8 +181,11 @@ function favoriteExercise(stats: Record<string, ExerciseStat>): FavoriteExercise
     const all = Object.values(stats);
     if (all.length === 0) return null;
     all.sort((a, b) => b.sets - a.sets || b.reps - a.reps);
-    const top = all[0];
-    if (!top) return null;
+
+    // Fix 7: noUncheckedIndexedAccess types all[0] as ExerciseStat | undefined.
+    // The length guard above guarantees at least one element; assert non-null.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const top = all[0]!;
     if (top.sets === 0) return null;
     return {
         exerciseId: top.exerciseId,
@@ -230,10 +250,9 @@ export async function getStats(
         const seenInDay = new Set<string>();
         w.entries.forEach((entry) => {
             const ex = exerciseLookup.get(entry.exerciseId);
-            const groupId = ex?.muscleGroupId;
-            if (!groupId || seenInDay.has(groupId)) return;
-            seenInDay.add(groupId);
-            groupDays[groupId] = (groupDays[groupId] || 0) + 1;
+            if (!ex || seenInDay.has(ex.muscleGroupId)) return;
+            seenInDay.add(ex.muscleGroupId);
+            groupDays[ex.muscleGroupId] = (groupDays[ex.muscleGroupId] || 0) + 1;
         });
     });
     const weeklyMuscleGroups = topGroups(groupDays, groupLookup);
