@@ -64,3 +64,36 @@ export async function clear(): Promise<void> {
         await cache.zrem(KEY, u.id);
     }
 }
+
+/**
+ * Drop any leaderboard members that are not in `currentUserIds`.
+ *
+ * Why this exists: the leaderboard ZSET lives in Redis (or the in-memory
+ * cache), while users live in Postgres. If Postgres is wiped/re-seeded
+ * but Redis isn't, the ZSET keeps accumulating UUIDs from previous
+ * incarnations of the user table. `getRank().totalUsers` is
+ * `cache.zcard(KEY)`, so callers see things like "rank 1 of 15" even
+ * though only 4 users actually exist.
+ *
+ * Called from `pointsService.recomputeAll()` on every boot — passes the
+ * current set of user IDs from Postgres so the ZSET self-heals.
+ */
+export async function reconcile(
+    currentUserIds: ReadonlySet<string>
+): Promise<number> {
+    const entries = await cache.zrevrangeWithScores(KEY, 0, -1);
+    let removed = 0;
+    for (const e of entries) {
+        if (!currentUserIds.has(e.member)) {
+            await cache.zrem(KEY, e.member);
+            removed += 1;
+        }
+    }
+    if (removed > 0) {
+        console.log(
+            `[leaderboard] reconciled — removed ${removed} stale member(s) ` +
+            `(ZSET now ${entries.length - removed} entries)`
+        );
+    }
+    return removed;
+}
