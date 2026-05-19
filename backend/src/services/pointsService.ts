@@ -113,6 +113,12 @@ export async function onWorkoutChanged(userId: string): Promise<number> {
 
 export async function recomputeAll(): Promise<void> {
   const users = await userRepo.findAll();
+
+  // Drop any leaderboard members that no longer exist in Postgres before we
+  // re-add the current ones. This is what makes "rank X / N" correct again
+  // after Postgres is wiped while Redis keeps the old user IDs.
+  await leaderboardService.reconcile(new Set(users.map((u) => u.id)));
+
   for (const u of users) {
     const total = await totalPointsForUser(u.id);
     if (total !== u.points) {

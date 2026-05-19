@@ -59,9 +59,21 @@ export default function HomePage() {
               } today. Keep going!`
               : "You haven't logged today's workout yet."}
           </p>
-          <Link to="/add" className="btn btn-primary btn-lg brand-card-cta">
-            + {todayWorkout ? "Edit today's workout" : "Log today's workout"}
-          </Link>
+          <div className="brand-card-cta-row">
+            <Link to="/add" className="btn btn-primary btn-lg brand-card-cta">
+              + {todayWorkout ? "Edit today's workout" : "Log today's workout"}
+            </Link>
+            {/* Quick path: skip the overview and jump straight to picking
+                a muscle group — handy when you already have something open
+                and just want to log one more exercise. */}
+            <Link
+              to="/add?step=pickGroup"
+              className="btn btn-ghost btn-lg brand-card-cta"
+              title="Skip straight to picking a muscle group"
+            >
+              + Add exercise
+            </Link>
+          </div>
         </section>
 
         <section className="card profile-card">

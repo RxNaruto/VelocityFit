@@ -35,6 +35,14 @@ export default function App() {
               <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-active' : '')}>
                 Home
               </NavLink>
+              {/* Deep-link straight to the muscle-group picker so you can
+                  start logging in one tap. */}
+              <NavLink
+                to="/add?step=pickGroup"
+                className={({ isActive }) => (isActive ? 'is-active' : '')}
+              >
+                + Add
+              </NavLink>
               <NavLink
                 to="/leaderboard"
                 className={({ isActive }) => (isActive ? 'is-active' : '')}
@@ -73,7 +81,7 @@ export default function App() {
 
       {!onAuthPage && (
         <footer className="app-footer">
-          <small>VELOCITY FIT • Train hard. Stay consistent.</small>
+          <small>VELOCITY FIT • Rithk Chaudhary.</small>
         </footer>
       )}
     </div>

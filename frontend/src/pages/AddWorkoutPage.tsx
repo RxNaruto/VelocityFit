@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useWorkouts } from '../context/WorkoutContext';
 import { formatPretty, todayKey } from '../utils/dates';
@@ -23,7 +23,6 @@ const STEP = {
 } as const;
 
 type Step = (typeof STEP)[keyof typeof STEP];
-
 type DraftEntry = WorkoutEntry;
 
 function rid(prefix: string) {
@@ -95,20 +94,36 @@ function mergeDuplicateEntries(entries: DraftEntry[]): DraftEntry[] {
     return Array.from(byExerciseId.values());
 }
 
+const VALID_STEPS = new Set<Step>(Object.values(STEP));
+
+function readStepFromQuery(value: string | null): Step | null {
+    if (!value) return null;
+    return VALID_STEPS.has(value as Step) ? (value as Step) : null;
+}
+
 export default function AddWorkoutPage() {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { workoutsByDate, saveToday, getExercises, exerciseLookup, muscleGroupLookup } =
         useWorkouts();
     const today = todayKey();
     const existing = workoutsByDate[today];
 
-    const [step, setStep] = useState<Step>(STEP.OVERVIEW);
+    // Honor `/add?step=pickGroup` so the header / homepage CTAs can drop
+    // the user straight into the muscle-group picker without an extra tap.
+    const initialStep = readStepFromQuery(searchParams.get('step')) || STEP.OVERVIEW;
+
+    const [step, setStep] = useState<Step>(initialStep);
     const [entries, setEntries] = useState<DraftEntry[]>(() =>
         mergeDuplicateEntries(existing?.entries || [])
     );
     const [selectedGroup, setSelectedGroup] = useState<MuscleGroup | null>(null);
     const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
-    const [saving, setSaving] = useState(false);
+    // Tracks the auto-save state of the most recent entry mutation.
+    const [persisting, setPersisting] = useState(false);
+    // Used to serialize concurrent saves — last call wins, earlier ones
+    // are ignored if a newer one is already in flight.
+    const saveSeqRef = useRef(0);
 
     useEffect(() => {
         if (!existing) return;
@@ -119,6 +134,17 @@ export default function AddWorkoutPage() {
         });
         groupIds.forEach((id) => getExercises(id));
     }, [existing, exerciseLookup, getExercises]);
+
+    // Strip the `?step=` query param once we've consumed it so the URL
+    // doesn't keep "remembering" it after the user navigates around.
+    useEffect(() => {
+        if (searchParams.get('step')) {
+            const next = new URLSearchParams(searchParams);
+            next.delete('step');
+            setSearchParams(next, { replace: true });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const totalSets = useMemo(
         () => entries.reduce((sum, e) => sum + e.sets.length, 0),
@@ -135,14 +161,48 @@ export default function AddWorkoutPage() {
         setStep(STEP.LOG_SETS);
     }
 
+    /**
+     * Persist `next` to the backend and reconcile local state with the
+     * authoritative response (which carries real DB ids for new sets).
+     * Rolls back to `previous` if the server rejects the change.
+     */
+    async function persistEntries(
+        next: DraftEntry[],
+        previous: DraftEntry[],
+        successMessage: string
+    ) {
+        const seq = ++saveSeqRef.current;
+        setPersisting(true);
+        try {
+            const saved = await saveToday(next.map(toEntryDraft));
+            // Bail out if another save started after this one — its result
+            // is what should win.
+            if (seq !== saveSeqRef.current) return;
+            // Replace local draft ids with the real persisted entries so the
+            // UI shows server-side ids (and any normalization the backend did).
+            setEntries(saved.entries);
+            toast.success(successMessage);
+        } catch (err) {
+            if (seq !== saveSeqRef.current) return;
+            setEntries(previous);
+            toast.error(err instanceof Error ? err.message : 'Failed to save');
+        } finally {
+            if (seq === saveSeqRef.current) setPersisting(false);
+        }
+    }
+
     function handleAddEntry(entry: EntryDraft) {
+        const previous = entries;
+        const existingIdx = previous.findIndex((e) => e.exerciseId === entry.exerciseId);
+        let next: DraftEntry[];
         let merged = false;
-        setEntries((prev) => {
-            const existingIdx = prev.findIndex((e) => e.exerciseId === entry.exerciseId);
-            if (existingIdx === -1) return [...prev, toDraftEntry(entry)];
+
+        if (existingIdx === -1) {
+            next = [...previous, toDraftEntry(entry)];
+        } else {
             merged = true;
-            const next = [...prev];
-            const existingEntry = next[existingIdx];
+            next = [...previous];
+            const existingEntry = next[existingIdx]!;
             const newSets = entry.sets.map((s) => ({
                 id: rid('tmp_set'),
                 reps: s.reps,
@@ -163,39 +223,30 @@ export default function AddWorkoutPage() {
                         : entry.notes
                     : existingEntry.notes,
             };
-            return next;
-        });
-
-        const exerciseName = exerciseLookup[entry.exerciseId]?.name || 'exercise';
-        if (merged) {
-            toast.success(`Added ${entry.sets.length} more set(s) to ${exerciseName}`);
-        } else {
-            toast.success(`Added ${exerciseName} to workout`);
         }
 
-        // After adding, step back through the wizard: stay on the same muscle
-        // group's exercise list so you can quickly add another. Use the toolbar
-        // back button (or the "Done" button) to return to the overview.
+        setEntries(next);
+
+        const exerciseName = exerciseLookup[entry.exerciseId]?.name || 'exercise';
+        const successMsg = merged
+            ? `Added ${entry.sets.length} more set(s) to ${exerciseName} • saved`
+            : `Added ${exerciseName} • saved`;
+        // Fire-and-forget; persistEntries handles its own toasts/rollback.
+        void persistEntries(next, previous, successMsg);
+
+        // Stay on the same muscle group so the user can quickly add another.
         setSelectedExercise(null);
         setStep(STEP.PICK_EXERCISE);
     }
 
     function handleRemoveEntry(idx: number) {
-        setEntries((prev) => prev.filter((_, i) => i !== idx));
-    }
-
-    async function handleSave() {
-        setSaving(true);
-        try {
-            await saveToday(entries.map(toEntryDraft));
-            toast.success('Workout saved');
-            navigate(`/day/${today}`);
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to save workout';
-            toast.error(message);
-        } finally {
-            setSaving(false);
-        }
+        const previous = entries;
+        const removed = previous[idx];
+        if (!removed) return;
+        const next = previous.filter((_, i) => i !== idx);
+        setEntries(next);
+        const name = exerciseLookup[removed.exerciseId]?.name || 'exercise';
+        void persistEntries(next, previous, `Removed ${name} • saved`);
     }
 
     // Toolbar back. Walks the wizard back one step at a time, exactly mirroring
@@ -227,6 +278,10 @@ export default function AddWorkoutPage() {
         setStep(target);
     }
 
+    function handleDone() {
+        navigate(`/day/${today}`);
+    }
+
     // ── Render helpers ───────────────────────────────────────────────────
     const groupName =
         selectedGroup?.name ||
@@ -242,7 +297,15 @@ export default function AddWorkoutPage() {
                 <button type="button" className="btn btn-ghost" onClick={handleBack}>
                     ← Back
                 </button>
-                <div className="muted small">{formatPretty(today)}</div>
+                <div className="muted small autosave-pill">
+                    {persisting ? (
+                        <>
+                            <Spinner size={12} inline /> Saving…
+                        </>
+                    ) : (
+                        <>{formatPretty(today)} • auto-saving</>
+                    )}
+                </div>
             </div>
 
             {step !== STEP.OVERVIEW && (
@@ -259,8 +322,8 @@ export default function AddWorkoutPage() {
                     <h1>{existing ? "Edit today's workout" : "Log today's workout"}</h1>
                     <p className="muted">
                         {entries.length === 0
-                            ? 'No exercises added yet.'
-                            : `${entries.length} exercise${entries.length === 1 ? '' : 's'} • ${totalSets} sets total`}
+                            ? 'No exercises added yet — each one you add is saved instantly.'
+                            : `${entries.length} exercise${entries.length === 1 ? '' : 's'} • ${totalSets} sets total • saved automatically`}
                     </p>
 
                     <EntryList entries={entries} onRemove={handleRemoveEntry} />
@@ -275,17 +338,11 @@ export default function AddWorkoutPage() {
                         </button>
                         <button
                             type="button"
-                            className="btn btn-success btn-lg"
-                            disabled={entries.length === 0 || saving}
-                            onClick={handleSave}
+                            className="btn btn-ghost btn-lg"
+                            onClick={handleDone}
+                            disabled={entries.length === 0}
                         >
-                            {saving ? (
-                                <>
-                                    <Spinner size={16} inline /> Saving…
-                                </>
-                            ) : (
-                                'Save workout'
-                            )}
+                            Done
                         </button>
                     </div>
                 </>

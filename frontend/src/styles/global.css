@@ -2118,3 +2118,17 @@ a {
   border-color: rgba(245, 158, 11, 0.45);
   color: #fde68a;
 }
+.brand-card-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Right side of the AddWorkout toolbar: shows the date by default, swaps
+   to a "Saving…" spinner while a per-entry save is in flight. */
+.autosave-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
