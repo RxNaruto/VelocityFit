@@ -2132,3 +2132,62 @@ a {
   align-items: center;
   gap: 6px;
 }
+
+.search-bar {
+  position: relative;
+  margin: 0 0 12px;
+}
+.search-input {
+  width: 100%;
+  padding: 12px 38px 12px 14px;
+  font-size: 16px; /* prevents iOS auto-zoom on focus */
+  background: var(--surface, #1a1d23);
+  color: inherit;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 10px;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.search-input::placeholder {
+  color: var(--muted, rgba(255, 255, 255, 0.45));
+}
+.search-input:focus {
+  border-color: var(--accent, #6c8cff);
+  box-shadow: 0 0 0 3px rgba(108, 140, 255, 0.18);
+}
+/* Hide the native "x" Safari/Chrome adds to type=search so we can
+   render our own consistent clear button on the right. */
+.search-input::-webkit-search-cancel-button,
+.search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.search-clear {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--muted, rgba(255, 255, 255, 0.55));
+  border: none;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.search-clear:hover,
+.search-clear:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  outline: none;
+}

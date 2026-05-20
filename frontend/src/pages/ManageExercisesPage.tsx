@@ -39,6 +39,9 @@ export default function ManageExercisesPage() {
     const [newGroupName, setNewGroupName] = useState('');
     const [newGroupSubmitting, setNewGroupSubmitting] = useState(false);
 
+    // ── Global search across all groups' exercises ─────────────────────
+    const [query, setQuery] = useState('');
+
     // Pre-load every group's exercises so the list view is populated.
     useEffect(() => {
         let cancelled = false;
@@ -62,6 +65,27 @@ export default function ManageExercisesPage() {
     const totalExercises = useMemo(
         () => Object.values(exercisesByGroup).reduce((sum, list) => sum + list.length, 0),
         [exercisesByGroup]
+    );
+
+    // Build a filtered, per-group view of the catalog whenever the
+    // search query changes. Groups whose entire list is filtered out
+    // are hidden, so big catalogs collapse down to just the matches.
+    const filteredGroupsView = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        return muscleGroups
+            .map((group) => {
+                const all = exercisesByGroup[group.id] || [];
+                const list = q
+                    ? all.filter((ex) => ex.name.toLowerCase().includes(q))
+                    : all;
+                return { group, list, hiddenByFilter: q !== '' && list.length === 0 };
+            })
+            .filter((row) => (q ? !row.hiddenByFilter : true));
+    }, [muscleGroups, exercisesByGroup, query]);
+
+    const matchCount = useMemo(
+        () => filteredGroupsView.reduce((sum, r) => sum + r.list.length, 0),
+        [filteredGroupsView]
     );
 
     async function handleCreate(e: FormEvent<HTMLFormElement>) {
@@ -236,16 +260,49 @@ export default function ManageExercisesPage() {
             {/* ── Existing exercises, grouped by muscle ─────────────────── */}
             <div className="admin-list">
                 <h2>Existing exercises</h2>
+
+                {!loading && muscleGroups.length > 0 && (
+                    <div className="search-bar">
+                        <input
+                            type="search"
+                            className="search-input"
+                            placeholder={`Search ${totalExercises} exercise${totalExercises === 1 ? '' : 's'} across all groups…`}
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            aria-label="Search exercises"
+                        />
+                        {query && (
+                            <button
+                                type="button"
+                                className="search-clear"
+                                onClick={() => setQuery('')}
+                                aria-label="Clear search"
+                                title="Clear search"
+                            >
+                                ×
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {query && !loading && (
+                    <p className="muted small">
+                        {matchCount === 0
+                            ? `No exercises match "${query}".`
+                            : `${matchCount} match${matchCount === 1 ? '' : 'es'} across ${filteredGroupsView.length} group${filteredGroupsView.length === 1 ? '' : 's'}.`}
+                    </p>
+                )}
+
                 {loading ? (
                     <Spinner size={28} label="Loading exercises…" />
                 ) : muscleGroups.length === 0 ? (
                     <p className="muted">No muscle groups yet — add one above.</p>
                 ) : (
-                    muscleGroups.map((group) => (
+                    filteredGroupsView.map(({ group, list }) => (
                         <AdminGroupBlock
                             key={group.id}
                             group={group}
-                            exercises={exercisesByGroup[group.id] || []}
+                            exercises={list}
                             onDelete={handleDelete}
                         />
                     ))
