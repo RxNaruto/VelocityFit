@@ -48,6 +48,31 @@ function streakBonus(streakDays: number): number {
   return Math.min(streakDays * POINTS.STREAK_PER_DAY, POINTS.STREAK_BONUS_CAP);
 }
 
+/**
+ * Score one workout given how many counts it carries. Pure function —
+ * the caller can supply either a full WorkoutDTO (which gets summarized
+ * here) or pre-computed counts from the lean SQL summary query.
+ */
+function scoreFromCounts(
+  counts: {
+    exerciseCount: number;
+    setCount: number;
+    failureSetCount: number;
+    dropSegmentCount: number;
+  },
+  streakDays: number
+): number {
+  if (counts.exerciseCount === 0) return 0;
+  return (
+    POINTS.PER_WORKOUT +
+    POINTS.PER_EXERCISE * counts.exerciseCount +
+    POINTS.PER_SET * counts.setCount +
+    POINTS.PER_FAILURE_SET * counts.failureSetCount +
+    POINTS.PER_DROP_SEGMENT * counts.dropSegmentCount +
+    streakBonus(Math.max(1, streakDays))
+  );
+}
+
 export function pointsForWorkout(
   workout: WorkoutDTO | null | undefined,
   streakDays = 1
@@ -69,32 +94,37 @@ export function pointsForWorkout(
     });
   });
 
-  return (
-    POINTS.PER_WORKOUT +
-    POINTS.PER_EXERCISE * exerciseCount +
-    POINTS.PER_SET * setCount +
-    POINTS.PER_FAILURE_SET * failureSetCount +
-    POINTS.PER_DROP_SEGMENT * dropSegmentCount +
-    streakBonus(Math.max(1, streakDays))
+  return scoreFromCounts(
+    { exerciseCount, setCount, failureSetCount, dropSegmentCount },
+    streakDays
   );
 }
 
 /**
  * Walks the user's workouts in chronological order so we can compute the
  * streak length at each workout date and credit the streak bonus accordingly.
+ *
+ * Performance note: uses the lean `summariesForPointsForUser` query
+ * (one aggregated SQL round trip) instead of `findAllForUser` (which
+ * pulls every entry / set / drop with relations). Matters because this
+ * is called on every workout mutation — the per-entry auto-save was
+ * spending most of its 2–3 s round-trip budget here when run against
+ * hosted Postgres.
  */
 export async function totalPointsForUser(userId: string): Promise<number> {
-  const workouts = await workoutRepo.findAllForUser(userId);
-  if (workouts.length === 0) return 0;
+  const summaries = await workoutRepo.summariesForPointsForUser(userId);
+  if (summaries.length === 0) return 0;
 
-  const sorted = [...workouts].sort((a, b) => (a.date < b.date ? -1 : 1));
+  // Query already orders by date ASC, but a defensive sort is cheap.
+  const sorted = [...summaries].sort((a, b) => (a.date < b.date ? -1 : 1));
+
   let total = 0;
   let streak = 0;
   let prevDate: string | null = null;
 
   for (const w of sorted) {
     streak = isNextDay(prevDate, w.date) ? streak + 1 : 1;
-    total += pointsForWorkout(w, streak);
+    total += scoreFromCounts(w, streak);
     prevDate = w.date;
   }
   return total;
