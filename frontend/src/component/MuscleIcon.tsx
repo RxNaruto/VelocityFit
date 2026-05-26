@@ -14,6 +14,10 @@ const PNG_SLUGS = new Set([
   'core',
   'cardio',
   'glutes',
+  'triceps',
+  'traps',
+  'full-body',
+  'forearms'
 ]);
 
 /**
@@ -47,23 +51,6 @@ export default function MuscleIcon({ slug, size = 28 }: MuscleIconProps) {
   };
 
   switch (slug) {
-    case 'triceps':
-      return (
-        <svg {...common}>
-          <path d="M3 9c2-2 5-3 8-3 4 0 6 2 9 4v5c-2 2-5 3-9 3-3 0-6-1-8-3" />
-          <path d="M9 12l3-3 3 3" />
-        </svg>
-      );
-    case 'traps':
-      return (
-        <svg {...common}>
-          <circle cx="12" cy="4.5" r="2" />
-          <path d="M4 14c2-4 5-6 8-6s6 2 8 6" />
-          <path d="M4 14l3 5" />
-          <path d="M20 14l-3 5" />
-          <path d="M9 14l3 4 3-4" />
-        </svg>
-      );
     case 'forearms':
       return (
         <svg {...common}>
@@ -78,16 +65,7 @@ export default function MuscleIcon({ slug, size = 28 }: MuscleIconProps) {
           <path d="M11 7c-3 1-4 4-3 8 1 3 1 5 1 6" />
         </svg>
       );
-    case 'full-body':
-      return (
-        <svg {...common}>
-          <circle cx="12" cy="4.5" r="2.5" />
-          <path d="M5 9h14" />
-          <path d="M12 9v8" />
-          <path d="M9 17l-2 5" />
-          <path d="M15 17l2 5" />
-        </svg>
-      );
+    
     default:
       return (
         <svg {...common}>
