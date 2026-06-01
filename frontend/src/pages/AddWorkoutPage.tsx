@@ -104,7 +104,7 @@ function readStepFromQuery(value: string | null): Step | null {
 export default function AddWorkoutPage() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const { workoutsByDate, saveToday, getExercises, exerciseLookup, muscleGroupLookup } =
+    const { workoutsByDate, saveToday, exerciseLookup, muscleGroupLookup } =
         useWorkouts();
     const today = todayKey();
     const existing = workoutsByDate[today];
@@ -121,19 +121,9 @@ export default function AddWorkoutPage() {
     const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
     // Tracks the auto-save state of the most recent entry mutation.
     const [persisting, setPersisting] = useState(false);
-    // Used to serialize concurrent saves — last call wins, earlier ones
+    // Used to serialize concurrent saves -- last call wins, earlier ones
     // are ignored if a newer one is already in flight.
     const saveSeqRef = useRef(0);
-
-    useEffect(() => {
-        if (!existing) return;
-        const groupIds = new Set<string>();
-        existing.entries.forEach((e) => {
-            const ex = exerciseLookup[e.exerciseId];
-            if (ex) groupIds.add(ex.muscleGroupId);
-        });
-        groupIds.forEach((id) => getExercises(id));
-    }, [existing, exerciseLookup, getExercises]);
 
     // Strip the `?step=` query param once we've consumed it so the URL
     // doesn't keep "remembering" it after the user navigates around.
@@ -175,7 +165,7 @@ export default function AddWorkoutPage() {
         setPersisting(true);
         try {
             const saved = await saveToday(next.map(toEntryDraft));
-            // Bail out if another save started after this one — its result
+            // Bail out if another save started after this one -- its result
             // is what should win.
             if (seq !== saveSeqRef.current) return;
             // Replace local draft ids with the real persisted entries so the
@@ -229,8 +219,8 @@ export default function AddWorkoutPage() {
 
         const exerciseName = exerciseLookup[entry.exerciseId]?.name || 'exercise';
         const successMsg = merged
-            ? `Added ${entry.sets.length} more set(s) to ${exerciseName} • saved`
-            : `Added ${exerciseName} • saved`;
+            ? `Added ${entry.sets.length} more set(s) to ${exerciseName} - saved`
+            : `Added ${exerciseName} - saved`;
         // Fire-and-forget; persistEntries handles its own toasts/rollback.
         void persistEntries(next, previous, successMsg);
 
@@ -246,11 +236,11 @@ export default function AddWorkoutPage() {
         const next = previous.filter((_, i) => i !== idx);
         setEntries(next);
         const name = exerciseLookup[removed.exerciseId]?.name || 'exercise';
-        void persistEntries(next, previous, `Removed ${name} • saved`);
+        void persistEntries(next, previous, `Removed ${name} - saved`);
     }
 
     // Toolbar back. Walks the wizard back one step at a time, exactly mirroring
-    // the forward path: OVERVIEW → PICK_GROUP → PICK_EXERCISE → LOG_SETS.
+    // the forward path: OVERVIEW -> PICK_GROUP -> PICK_EXERCISE -> LOG_SETS.
     function handleBack() {
         if (step === STEP.LOG_SETS) {
             setSelectedExercise(null);
@@ -282,7 +272,7 @@ export default function AddWorkoutPage() {
         navigate(`/day/${today}`);
     }
 
-    // ── Render helpers ───────────────────────────────────────────────────
+    // -- Render helpers ----------------------------------------------------
     const groupName =
         selectedGroup?.name ||
         (selectedExercise && muscleGroupLookup[
@@ -295,15 +285,15 @@ export default function AddWorkoutPage() {
         <div className="page">
             <div className="page-toolbar">
                 <button type="button" className="btn btn-ghost" onClick={handleBack}>
-                    ← Back
+                    &lt;- Back
                 </button>
                 <div className="muted small autosave-pill">
                     {persisting ? (
                         <>
-                            <Spinner size={12} inline /> Saving…
+                            <Spinner size={12} inline /> Saving...
                         </>
                     ) : (
-                        <>{formatPretty(today)} • auto-saving</>
+                        <>{formatPretty(today)} - auto-saving</>
                     )}
                 </div>
             </div>
@@ -322,8 +312,8 @@ export default function AddWorkoutPage() {
                     <h1>{existing ? "Edit today's workout" : "Log today's workout"}</h1>
                     <p className="muted">
                         {entries.length === 0
-                            ? 'No exercises added yet — each one you add is saved instantly.'
-                            : `${entries.length} exercise${entries.length === 1 ? '' : 's'} • ${totalSets} sets total • saved automatically`}
+                            ? 'No exercises added yet -- each one you add is saved instantly.'
+                            : `${entries.length} exercise${entries.length === 1 ? '' : 's'} - ${totalSets} sets total - saved automatically`}
                     </p>
 
                     <EntryList entries={entries} onRemove={handleRemoveEntry} />
@@ -398,7 +388,7 @@ function Breadcrumb({ step, groupName, exerciseName, onJump }: BreadcrumbProps) 
             >
                 Overview
             </button>
-            <span className="breadcrumb-sep">›</span>
+            <span className="breadcrumb-sep">&gt;</span>
             <button
                 type="button"
                 className={`breadcrumb-item${step === STEP.PICK_GROUP ? ' is-current' : ''}`}
@@ -408,7 +398,7 @@ function Breadcrumb({ step, groupName, exerciseName, onJump }: BreadcrumbProps) 
             </button>
             {(step === STEP.PICK_EXERCISE || step === STEP.LOG_SETS) && (
                 <>
-                    <span className="breadcrumb-sep">›</span>
+                    <span className="breadcrumb-sep">&gt;</span>
                     <button
                         type="button"
                         className={`breadcrumb-item${step === STEP.PICK_EXERCISE ? ' is-current' : ''}`}
@@ -421,7 +411,7 @@ function Breadcrumb({ step, groupName, exerciseName, onJump }: BreadcrumbProps) 
             )}
             {step === STEP.LOG_SETS && (
                 <>
-                    <span className="breadcrumb-sep">›</span>
+                    <span className="breadcrumb-sep">&gt;</span>
                     <span className="breadcrumb-item is-current" aria-current="step">
                         {exerciseName || 'Log sets'}
                     </span>

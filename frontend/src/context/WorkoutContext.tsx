@@ -25,6 +25,11 @@ interface WorkoutContextValue {
     exerciseLookup: Record<string, Exercise>;
     workoutsByDate: Record<string, Workout>;
     loading: boolean;
+    /** True once the catalog (muscle groups + their exercises) has been
+     *  fully loaded. Consumers that render exercise names should defer
+     *  until this is true to avoid showing raw ids like `ex_leg_extension`
+     *  while the lookup is still empty. */
+    exercisesReady: boolean;
     error: string | null;
     getExercises: (muscleGroupId: string) => Promise<Exercise[]>;
     saveToday: (entries: EntryDraft[]) => Promise<Workout>;
@@ -43,11 +48,39 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     const [exercisesByGroup, setExercisesByGroup] = useState<Record<string, Exercise[]>>({});
     const [workoutsByDate, setWorkoutsByDate] = useState<Record<string, Workout>>({});
     const [loading, setLoading] = useState(true);
+    const [exercisesReady, setExercisesReady] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    /**
+     * Fetch every exercise in one round-trip and pre-fill `exercisesByGroup`
+     * for every known muscle group (including ones with zero exercises).
+     *
+     * Doing this eagerly fixes a long-standing UX bug: anywhere that renders
+     * `exerciseLookup[entry.exerciseId]?.name` used to fall back to the raw
+     * id (e.g. `ex_leg_extension`) when the user landed on a page before
+     * the relevant muscle group's bucket had been loaded on demand.
+     */
     const loadCatalog = useCallback(async () => {
-        const groups = await api.getMuscleGroups();
+        const [groups, allExercises] = await Promise.all([
+            api.getMuscleGroups(),
+            api.getExercises(),
+        ]);
+        const buckets: Record<string, Exercise[]> = {};
+        // Seed an empty bucket for every group so `getExercises(id)` can
+        // short-circuit even for groups that legitimately have no exercises.
+        groups.forEach((g) => {
+            buckets[g.id] = [];
+        });
+        allExercises.forEach((ex) => {
+            const list = buckets[ex.muscleGroupId] || (buckets[ex.muscleGroupId] = []);
+            list.push(ex);
+        });
+        Object.values(buckets).forEach((list) =>
+            list.sort((a, b) => a.name.localeCompare(b.name))
+        );
         setMuscleGroups(groups);
+        setExercisesByGroup(buckets);
+        setExercisesReady(true);
     }, []);
 
     const loadAllWorkouts = useCallback(async () => {
@@ -73,7 +106,11 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
 
     const getExercises = useCallback(
         async (muscleGroupId: string): Promise<Exercise[]> => {
-            if (exercisesByGroup[muscleGroupId]) return exercisesByGroup[muscleGroupId];
+            const cached = exercisesByGroup[muscleGroupId];
+            if (cached) return cached;
+            // Catalog loads eagerly, so this path is only hit for groups
+            // that appeared after boot (e.g. just-created via "Manage
+            // exercises"). Fall back to a fresh API call.
             const list = await api.getExercises(muscleGroupId);
             setExercisesByGroup((prev) => ({ ...prev, [muscleGroupId]: list }));
             return list;
@@ -135,6 +172,12 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         async (payload: NewExercisePayload): Promise<Exercise> => {
             const created = await api.createExercise(payload);
             setExercisesByGroup((prev) => {
+                // Always splice into a (possibly empty) bucket. Because the
+                // catalog loads eagerly at boot, every known muscle group
+                // already has a bucket here -- so this safely appends to the
+                // *full* list rather than poisoning an unloaded one with a
+                // single-element array (which used to cause new exercises
+                // to "swallow" all existing ones for that group).
                 const list = prev[created.muscleGroupId] || [];
                 const next = [...list.filter((e) => e.id !== created.id), created].sort((a, b) =>
                     a.name.localeCompare(b.name)
@@ -150,7 +193,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         async (id: string, patch: UpdateExercisePayload): Promise<Exercise> => {
             const updated = await api.updateExercise(id, patch);
             setExercisesByGroup((prev) => {
-                // Drop the old row from every bucket — its group may have changed —
+                // Drop the old row from every bucket -- its group may have changed --
                 // then insert it into the (possibly new) target group's bucket.
                 const next: Record<string, Exercise[]> = {};
                 for (const [groupId, list] of Object.entries(prev)) {
@@ -186,6 +229,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         exerciseLookup,
         workoutsByDate,
         loading,
+        exercisesReady,
         error,
         getExercises,
         saveToday,
