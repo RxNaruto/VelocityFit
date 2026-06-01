@@ -2,11 +2,13 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { toast } from 'react-toastify';
 import { useWorkouts } from '../context/WorkoutContext';
 import {
+    findAllTimePRFor,
     findLastSessionFor,
     formatDuration,
     fromSeconds,
     isTimeBasedExercise,
     toSeconds,
+    type PRRecord,
 } from '../utils/exerciseKind';
 import { formatPretty, todayKey } from '../utils/dates';
 import type { EntryDraft, Exercise, WorkoutEntry, WorkoutSet } from '../types';
@@ -23,7 +25,7 @@ interface SetLoggerProps {
  *
  * For strength training, each row can also carry zero or more *drop* segments.
  * A drop is the same physical set continued at a lower weight with no rest
- * — e.g. 10 × 50 (failure) → 6 × 40. Drops are intentionally disabled for
+ * -- e.g. 10 x 50 (failure) -> 6 x 40. Drops are intentionally disabled for
  * time-based exercises (no concept of "drop the weight" on cardio/isometrics).
  */
 interface DropRow {
@@ -95,13 +97,21 @@ export default function SetLogger({ exercise, onAdd, onCancel }: SetLoggerProps)
         [workoutsByDate, exercise.id]
     );
 
+    // All-time PR for this exercise -- heaviest single set's weight x reps for
+    // strength training, or longest duration for time-based work. Includes
+    // today's sets so a fresh PR shows up immediately after auto-save.
+    const personalRecord = useMemo(
+        () => findAllTimePRFor(workoutsByDate, exercise.id, timeBased),
+        [workoutsByDate, exercise.id, timeBased]
+    );
+
     const [rows, setRows] = useState<Row[]>(() =>
         lastSession ? entryToRows(lastSession.entry, timeBased) : [makeRow()]
     );
     const [notes, setNotes] = useState('');
     // Whether the form is still showing untouched pre-fill from the last
     // session. Used only to label the "Start fresh" button slightly differently
-    // — once the user starts editing, we no longer call the data "pre-filled".
+    // -- once the user starts editing, we no longer call the data "pre-filled".
     const [prefilled, setPrefilled] = useState<boolean>(Boolean(lastSession));
 
     function markDirty() {
@@ -117,7 +127,7 @@ export default function SetLogger({ exercise, onAdd, onCancel }: SetLoggerProps)
         markDirty();
         setRows((prev) => {
             const last = prev[prev.length - 1];
-            // Only carry over the parent set's reps/weight — drops should start fresh.
+            // Only carry over the parent set's reps/weight -- drops should start fresh.
             return [...prev, makeRow(last?.a || '', last?.b || '', false)];
         });
     }
@@ -148,7 +158,7 @@ export default function SetLogger({ exercise, onAdd, onCancel }: SetLoggerProps)
         setPrefilled(true);
     }
 
-    // ─── Drop-set helpers ───────────────────────────────────────────────
+    // --- Drop-set helpers -------------------------------------------------
     // Adding a drop implies the parent set went to failure. We auto-flip
     // the failure flag the first time a drop appears so the UI matches
     // the lifter's intent (a drop *only* makes sense after failure).
@@ -240,7 +250,7 @@ export default function SetLogger({ exercise, onAdd, onCancel }: SetLoggerProps)
         });
     }
 
-    // ── Labels & headings differ between strength and time-based ───────────
+    // -- Labels & headings differ between strength and time-based ----------
     const aLabel = timeBased ? 'Min' : 'Reps';
     const bLabel = timeBased ? 'Sec' : 'Weight';
     const aPlaceholder = timeBased ? '0' : '0';
@@ -248,6 +258,14 @@ export default function SetLogger({ exercise, onAdd, onCancel }: SetLoggerProps)
 
     return (
         <form className="card" onSubmit={handleSubmit}>
+            {/* All-time PR badge. Always shown when the user has any prior
+                qualifying set logged for this exercise -- independent of the
+                "last session" panel below, so brand-new setups still see
+                their record after the very first heavy day. */}
+            {personalRecord && (
+                <PRBadge record={personalRecord} timeBased={timeBased} />
+            )}
+
             {/* "Last session" reference panel + pre-fill controls. */}
             {lastSession && (
                 <LastSessionPanel
@@ -262,8 +280,8 @@ export default function SetLogger({ exercise, onAdd, onCancel }: SetLoggerProps)
 
             <p className="muted small">
                 {timeBased
-                    ? 'Log your sets — duration is split into minutes + seconds.'
-                    : 'Log your sets. Tap “+ Drop” on a set to log a no-rest drop after failure.'}
+                    ? 'Log your sets -- duration is split into minutes + seconds.'
+                    : 'Log your sets. Tap "+ Drop" on a set to log a no-rest drop after failure.'}
             </p>
 
             <div className="sets-editor">
@@ -314,7 +332,7 @@ export default function SetLogger({ exercise, onAdd, onCancel }: SetLoggerProps)
                                 disabled={rows.length === 1}
                                 onClick={() => removeRow(i)}
                             >
-                                ×
+                                x
                             </button>
                         </div>
 
@@ -324,7 +342,7 @@ export default function SetLogger({ exercise, onAdd, onCancel }: SetLoggerProps)
                                 {r.drops.map((d, j) => (
                                     <div className="drop-row" key={d.id}>
                                         <span className="drop-row-arrow" aria-hidden="true">
-                                            ↳
+                                            &gt;
                                         </span>
                                         <span className="drop-row-label">drop {j + 1}</span>
                                         <input
@@ -350,7 +368,7 @@ export default function SetLogger({ exercise, onAdd, onCancel }: SetLoggerProps)
                                             aria-label="Remove drop"
                                             onClick={() => removeDrop(i, j)}
                                         >
-                                            ×
+                                            x
                                         </button>
                                     </div>
                                 ))}
@@ -406,7 +424,7 @@ export default function SetLogger({ exercise, onAdd, onCancel }: SetLoggerProps)
                     rows={2}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder={timeBased ? 'Pace, HR zone, hold quality…' : 'Form cues, RPE, etc.'}
+                    placeholder={timeBased ? 'Pace, HR zone, hold quality...' : 'Form cues, RPE, etc.'}
                 />
             </label>
 
@@ -435,8 +453,8 @@ interface LastSessionPanelProps {
  * Read-only summary of the user's previous session for this exercise.
  *
  * Doubles as a control panel:
- * - "Start fresh" → wipes the pre-filled rows back to one empty input
- * - "Use last session" (shown only after the user has edited) → restores
+ * - "Start fresh" -> wipes the pre-filled rows back to one empty input
+ * - "Use last session" (shown only after the user has edited) -> restores
  *   the pre-fill so they don't lose the reference numbers
  */
 function LastSessionPanel({
@@ -453,13 +471,13 @@ function LastSessionPanel({
             <div className="last-session-head">
                 <div>
                     <div className="last-session-title">
-                        Last time · {formatPretty(date)}
+                        Last time -- {formatPretty(date)}
                     </div>
                     <div className="muted small">
                         {totalSets} set{totalSets === 1 ? '' : 's'}
                         {prefilled
-                            ? ' — pre-filled below, tweak what changed for today.'
-                            : ' — for reference.'}
+                            ? ' -- pre-filled below, tweak what changed for today.'
+                            : ' -- for reference.'}
                     </div>
                 </div>
                 <div className="last-session-actions">
@@ -516,7 +534,7 @@ function LastSessionPanel({
     );
 }
 
-// Suggest a drop weight ≈ 80% of the parent (rounded to nearest 0.5kg).
+// Suggest a drop weight ~ 80% of the parent (rounded to nearest 0.5kg).
 // Returns '' if the parent has no numeric weight so the field stays blank.
 function suggestDropWeight(parentWeight: number | string): number | string {
     const w = Number(parentWeight);
@@ -533,10 +551,10 @@ function totalSetReps(r: Row): number {
 
 function formatSegments(r: Row): string {
     const segs = [
-        `${Number(r.a) || 0}×${r.b}`,
-        ...r.drops.map((d) => `${Number(d.reps) || 0}×${d.weight}`),
+        `${Number(r.a) || 0}x${r.b}`,
+        ...r.drops.map((d) => `${Number(d.reps) || 0}x${d.weight}`),
     ];
-    return segs.join(' → ');
+    return segs.join(' -> ');
 }
 
 /** Identical formatting to `EntryList`'s set-pill text, kept local so the
@@ -544,7 +562,7 @@ function formatSegments(r: Row): string {
 function describeStrengthSet(set: WorkoutSet): string {
     const segs = [formatSegment(set.reps, set.weight)];
     (set.drops || []).forEach((d) => segs.push(formatSegment(d.reps, d.weight)));
-    return segs.join(' → ');
+    return segs.join(' -> ');
 }
 
 function formatSegment(reps: number, weight: number | null): string {
@@ -552,5 +570,37 @@ function formatSegment(reps: number, weight: number | null): string {
     if (weight === null || weight === undefined || (weight as unknown as string) === '') {
         return String(r);
     }
-    return `${r}×${weight}`;
+    return `${r}x${weight}`;
+}
+
+interface PRBadgeProps {
+    record: PRRecord;
+    timeBased: boolean;
+}
+
+/**
+ * Compact "all-time PR" callout shown above the last-session panel.
+ * Strength    -> heaviest weight x reps achieved.
+ * Time-based  -> longest single-set duration.
+ */
+function PRBadge({ record, timeBased }: PRBadgeProps) {
+    const value = timeBased
+        ? `${formatDuration(record.reps)} min`
+        : record.weight !== null
+            ? `${record.weight} x ${record.reps}`
+            : `${record.reps}`;
+    const label = timeBased ? 'longest set' : 'heaviest lift';
+    return (
+        <div className="pr-badge" role="note" aria-label={`Personal record -- ${value}`}>
+            <span className="pr-badge-icon" aria-hidden="true">*</span>
+            <div className="pr-badge-body">
+                <div className="pr-badge-title">All-time PR</div>
+                <div className="pr-badge-value">{value}</div>
+            </div>
+            <div className="pr-badge-meta">
+                <span className="pr-badge-meta-label">{label}</span>
+                <span className="pr-badge-meta-date">{formatPretty(record.date)}</span>
+            </div>
+        </div>
+    );
 }

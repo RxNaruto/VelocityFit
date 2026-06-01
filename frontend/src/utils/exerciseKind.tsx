@@ -63,13 +63,13 @@ export function formatDuration(total: number): string {
     return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
-/** Render a set as text — time-based: `mm:ss`, otherwise `reps × weight`. */
+/** Render a set as text -- time-based: `mm:ss`, otherwise `reps x weight`. */
 export function describeSet(set: WorkoutSet, timeBased: boolean): string {
     if (timeBased) return formatDuration(set.reps);
     const weight = set.weight;
     const hasWeight =
         weight !== null && weight !== undefined && (weight as unknown as string) !== '';
-    return hasWeight ? `${set.reps} × ${weight}` : String(set.reps);
+    return hasWeight ? `${set.reps} x ${weight}` : String(set.reps);
 }
 
 /**
@@ -77,7 +77,7 @@ export function describeSet(set: WorkoutSet, timeBased: boolean): string {
  * contained a non-empty entry for `exerciseId`, so we can pre-fill the
  * set logger and show a "Last session" reference.
  *
- * The scan is a tiny linear walk of the in-memory `workoutsByDate` map —
+ * The scan is a tiny linear walk of the in-memory `workoutsByDate` map --
  * cheap even for years of history.
  */
 export function findLastSessionFor(
@@ -99,4 +99,71 @@ export function findLastSessionFor(
         if (entry) return { date: d, entry };
     }
     return null;
+}
+
+/**
+ * Personal record for a single exercise, scanned across the user's whole
+ * workout history (today included, so the panel updates the moment a new
+ * PR is logged).
+ *
+ * Strength PR  -> the single set with the highest `weight`. We also surface
+ *                the reps performed at that weight so the lifter sees the
+ *                full record (e.g. "100 kg x 5 reps" beats "100 kg x 1").
+ *                Drop-set segments don't count -- drops happen *after*
+ *                failure on a lighter weight, so they're never the PR.
+ *
+ * Time PR     -> the longest single set duration (in seconds).
+ *
+ * Returns `null` when no qualifying set exists, e.g. brand-new exercise
+ * or only bodyweight (`weight === null`) sets logged so far.
+ */
+export interface PRRecord {
+    /** Workout date (yyyy-mm-dd) where the PR set was logged. */
+    date: string;
+    /** Reps at the PR weight (strength) or the duration in seconds (time). */
+    reps: number;
+    /** Heaviest weight (strength). Null for time-based exercises. */
+    weight: number | null;
+    /** True for cardio + isometric exercises (PR = longest duration). */
+    timeBased: boolean;
+}
+
+export function findAllTimePRFor(
+    workoutsByDate: Record<string, Workout>,
+    exerciseId: string,
+    timeBased: boolean
+): PRRecord | null {
+    if (!exerciseId) return null;
+    let best: PRRecord | null = null;
+    for (const d of Object.keys(workoutsByDate)) {
+        const w = workoutsByDate[d];
+        if (!w || !Array.isArray(w.entries)) continue;
+        for (const entry of w.entries) {
+            if (entry.exerciseId !== exerciseId) continue;
+            for (const s of entry.sets || []) {
+                if (timeBased) {
+                    const seconds = Number(s.reps) || 0;
+                    if (seconds <= 0) continue;
+                    if (!best || seconds > best.reps) {
+                        best = { date: d, reps: seconds, weight: null, timeBased: true };
+                    }
+                    continue;
+                }
+                const weight =
+                    s.weight === null || s.weight === undefined ? null : Number(s.weight);
+                if (weight === null || !Number.isFinite(weight) || weight <= 0) continue;
+                const reps = Number(s.reps) || 0;
+                // Strength PR: heaviest weight wins outright. Tie-break by
+                // higher reps at the same weight (more impressive lift).
+                if (
+                    !best ||
+                    (best.weight ?? 0) < weight ||
+                    ((best.weight ?? 0) === weight && reps > best.reps)
+                ) {
+                    best = { date: d, reps, weight, timeBased: false };
+                }
+            }
+        }
+    }
+    return best;
 }

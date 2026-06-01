@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useWorkouts } from '../context/WorkoutContext';
 import Spinner from '../component/Spinner';
@@ -8,31 +8,17 @@ import { isTimeBasedExercise, formatDuration } from '../utils/exerciseKind';
 export default function WorkoutDayPage() {
     const { date = '' } = useParams<{ date: string }>();
     const navigate = useNavigate();
-    const { workoutsByDate, exerciseLookup, muscleGroupLookup, getExercises, muscleGroups } =
+    const { workoutsByDate, exerciseLookup, muscleGroupLookup, exercisesReady } =
         useWorkouts();
 
     const workout = workoutsByDate[date] || null;
     const editable = isToday(date);
-    const [exercisesReady, setExercisesReady] = useState(false);
-
-    // Make sure we have exercise names cached so we can render the workout
-    // even if the user lands directly on this page.
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            await Promise.all(muscleGroups.map((g) => getExercises(g.id)));
-            if (!cancelled) setExercisesReady(true);
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, [muscleGroups, getExercises]);
 
     return (
         <div className="page">
             <div className="page-toolbar">
                 <Link to="/" className="btn btn-ghost">
-                    ← Back
+                    &lt;- Back
                 </Link>
                 {editable && (
                     <button
@@ -59,7 +45,7 @@ export default function WorkoutDayPage() {
             ) : (
                 <div className="card">
                     {!exercisesReady ? (
-                        <Spinner size={24} label="Loading…" />
+                        <Spinner size={24} label="Loading..." />
                     ) : (
                         <ol className="entry-list">
                             {workout.entries.map((entry) => {
@@ -106,7 +92,7 @@ export default function WorkoutDayPage() {
                                                                     {hasDrops && (
                                                                         <span
                                                                             className="set-row-badge set-row-badge-drop"
-                                                                            title={`Drop set — ${totalReps} total reps`}
+                                                                            title={`Drop set -- ${totalReps} total reps`}
                                                                         >
                                                                             D{drops.length}
                                                                         </span>
@@ -117,7 +103,7 @@ export default function WorkoutDayPage() {
                                                                 ) : (
                                                                     <>
                                                                         <td>{s.reps}</td>
-                                                                        <td>{s.weight ?? '—'}</td>
+                                                                        <td>{s.weight ?? '-'}</td>
                                                                     </>
                                                                 )}
                                                             </tr>
@@ -125,10 +111,10 @@ export default function WorkoutDayPage() {
                                                                 drops.map((d, j) => (
                                                                     <tr key={d.id} className="drop-tr">
                                                                         <td className="drop-tr-num">
-                                                                            <span aria-hidden="true">↳</span> drop {j + 1}
+                                                                            <span aria-hidden="true">&gt;</span> drop {j + 1}
                                                                         </td>
                                                                         <td>{d.reps}</td>
-                                                                        <td>{d.weight ?? '—'}</td>
+                                                                        <td>{d.weight ?? '-'}</td>
                                                                     </tr>
                                                                 ))}
                                                         </Fragment>
