@@ -44,7 +44,7 @@ export default function HomePage() {
   return (
     <div className="page page-home">
       <div className="dashboard-grid">
-        {/* ── Row 1 ── */}
+        {/* -- Row 1 -- */}
         <section className="card brand-card">
           <div className="brand-card-head">
             <BrandMark size="lg" />
@@ -63,15 +63,16 @@ export default function HomePage() {
             <Link to="/add" className="btn btn-primary btn-lg brand-card-cta">
               + {todayWorkout ? "Edit today's workout" : "Log today's workout"}
             </Link>
-            {/* Quick path: skip the overview and jump straight to picking
-                a muscle group — handy when you already have something open
-                and just want to log one more exercise. */}
+            {/* Single, dedicated entry point for adding new exercises to
+                the catalog. The inline "can't find one? create it" affordance
+                inside the workout picker was removed in favor of this one
+                obvious path. */}
             <Link
-              to="/add?step=pickGroup"
+              to="/admin/exercises"
               className="btn btn-ghost btn-lg brand-card-cta"
-              title="Skip straight to picking a muscle group"
+              title="Add new exercises to the catalog"
             >
-              + Add exercise
+              + Add new exercise
             </Link>
           </div>
         </section>
@@ -89,7 +90,7 @@ export default function HomePage() {
               <div className="profile-card-stats">
                 <div className="profile-card-stat">
                   <div className="profile-card-stat-value">
-                    #{rank?.rank ?? '—'}
+                    #{rank?.rank ?? '-'}
                   </div>
                   <div className="profile-card-stat-label">
                     Rank{rank?.totalUsers ? ` / ${rank.totalUsers}` : ''}
@@ -101,13 +102,13 @@ export default function HomePage() {
                 </div>
               </div>
               <Link to="/profile" className="btn btn-ghost btn-sm profile-card-link">
-                View full profile →
+                View full profile -&gt;
               </Link>
             </>
           )}
         </section>
 
-        {/* ── Row 2 ── */}
+        {/* -- Row 2 -- */}
         <section className="card calendar-card">
           <Calendar
             workoutsByDate={workoutsByDate}
@@ -131,13 +132,13 @@ export default function HomePage() {
           <div className="leaderboard-card-head">
             <h2>Leaderboard</h2>
             <Link to="/leaderboard" className="btn btn-ghost btn-sm">
-              View all →
+              View all -&gt;
             </Link>
           </div>
           {boardLoading ? (
-            <Spinner size={24} label="Loading…" />
+            <Spinner size={24} label="Loading..." />
           ) : topRows.length === 0 ? (
-            <p className="muted">No rankings yet — log a workout to get on the board!</p>
+            <p className="muted">No rankings yet -- log a workout to get on the board!</p>
           ) : (
             <ol className="leaderboard-list compact">
               {topRows.map((r) => (
