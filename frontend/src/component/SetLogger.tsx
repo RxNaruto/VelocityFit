@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { toast } from 'react-toastify';
 import { useWorkouts } from '../context/WorkoutContext';
 import {
@@ -12,7 +12,6 @@ import {
 } from '../utils/exerciseKind';
 import { formatPretty, todayKey } from '../utils/dates';
 import type { EntryDraft, Exercise, WorkoutEntry, WorkoutSet } from '../types';
-
 interface SetLoggerProps {
     exercise: Exercise;
     onAdd: (entry: EntryDraft) => void;
@@ -32,6 +31,10 @@ interface DropRow {
     id: string;
     reps: number | string;
     weight: number | string;
+}
+interface PRBadgeProps {
+    record: PRRecord;
+    timeBased: boolean;
 }
 
 interface Row {
@@ -584,18 +587,51 @@ interface PRBadgeProps {
  * Time-based  -> longest single-set duration.
  */
 function PRBadge({ record, timeBased }: PRBadgeProps) {
-    const value = timeBased
-        ? `${formatDuration(record.reps)} min`
-        : record.weight !== null
-            ? `${record.weight} x ${record.reps}`
-            : `${record.reps}`;
+    // Build a readable PR string with explicit units, so the user always
+    // sees "what" the number is, not just bare digits like "30 x 5".
+    let ariaValue: string;
+    let valueNode: ReactNode;
+    if (timeBased) {
+        ariaValue = `${formatDuration(record.reps)} minutes`;
+        valueNode = (
+            <>
+                {formatDuration(record.reps)}{' '}
+                <span className="pr-badge-unit">min</span>
+            </>
+        );
+    } else if (record.weight !== null) {
+        ariaValue = `${record.weight} kilograms for ${record.reps} reps`;
+        valueNode = (
+            <>
+                {record.weight}{' '}
+                <span className="pr-badge-unit">kg</span>{' '}
+                <span className="pr-badge-x">&times;</span>{' '}
+                {record.reps}{' '}
+                <span className="pr-badge-unit">
+                    rep{record.reps === 1 ? '' : 's'}
+                </span>
+            </>
+        );
+    } else {
+        ariaValue = `${record.reps} reps (bodyweight)`;
+        valueNode = (
+            <>
+                {record.reps}{' '}
+                <span className="pr-badge-unit">
+                    rep{record.reps === 1 ? '' : 's'}
+                </span>{' '}
+                <span className="pr-badge-x">&middot;</span>{' '}
+                <span className="pr-badge-unit">bodyweight</span>
+            </>
+        );
+    }
     const label = timeBased ? 'longest set' : 'heaviest lift';
     return (
-        <div className="pr-badge" role="note" aria-label={`Personal record -- ${value}`}>
+        <div className="pr-badge" role="note" aria-label={`Personal record -- ${ariaValue}`}>
             <span className="pr-badge-icon" aria-hidden="true">*</span>
             <div className="pr-badge-body">
                 <div className="pr-badge-title">All-time PR</div>
-                <div className="pr-badge-value">{value}</div>
+                <div className="pr-badge-value">{valueNode}</div>
             </div>
             <div className="pr-badge-meta">
                 <span className="pr-badge-meta-label">{label}</span>

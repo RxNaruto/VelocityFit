@@ -125,16 +125,35 @@ export default function AddWorkoutPage() {
     // are ignored if a newer one is already in flight.
     const saveSeqRef = useRef(0);
 
-    // Strip the `?step=` query param once we've consumed it so the URL
-    // doesn't keep "remembering" it after the user navigates around.
+    // Honor `?step=` whenever the URL changes -- not just on the initial
+    // mount. This is what makes the header `+ Add` link reliably jump to
+    // the muscle-group picker even when `AddWorkoutPage` is already
+    // mounted (e.g. user navigates from `/add` back to `/add?step=pickGroup`).
+    // After applying the step we strip the param so it doesn't keep
+    // "remembering" the deep-link as the user moves around.
     useEffect(() => {
-        if (searchParams.get('step')) {
-            const next = new URLSearchParams(searchParams);
-            next.delete('step');
-            setSearchParams(next, { replace: true });
+        const raw = searchParams.get('step');
+        if (!raw) return;
+        const queryStep = readStepFromQuery(raw);
+        if (queryStep) {
+            // Reset any in-progress wizard state when jumping straight to
+            // a fresh step, otherwise stale selections from the previous
+            // session would leak into the new view.
+            if (queryStep === STEP.PICK_GROUP) {
+                setSelectedGroup(null);
+                setSelectedExercise(null);
+            } else if (queryStep === STEP.PICK_EXERCISE) {
+                setSelectedExercise(null);
+            } else if (queryStep === STEP.OVERVIEW) {
+                setSelectedGroup(null);
+                setSelectedExercise(null);
+            }
+            setStep(queryStep);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        const next = new URLSearchParams(searchParams);
+        next.delete('step');
+        setSearchParams(next, { replace: true });
+    }, [searchParams, setSearchParams]);
 
     const totalSets = useMemo(
         () => entries.reduce((sum, e) => sum + e.sets.length, 0),
