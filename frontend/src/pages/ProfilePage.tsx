@@ -43,18 +43,23 @@ export default function ProfilePage() {
     });
     const [saving, setSaving] = useState(false);
 
-    // Lazily-opened panel that lists every exercise the user has ever
-    // logged, alongside its all-time PR. Hidden behind a button so the
-    // profile stays compact for users who don't care to drill in.
     const [showPRs, setShowPRs] = useState(false);
+    const [prQuery, setPrQuery] = useState('');
 
-    // Compute "PR records" lazily, only when the user opens the panel --
-    // it scans every workout & every set, so a cheap upfront skip matters
-    // for users with long histories.
     const prRecords = useMemo<PRItem[]>(() => {
         if (!showPRs) return [];
         return buildPRList(workoutsByDate, exerciseLookup, muscleGroupLookup);
     }, [showPRs, workoutsByDate, exerciseLookup, muscleGroupLookup]);
+
+    const visiblePRRecords = useMemo<PRItem[]>(() => {
+        const q = prQuery.trim().toLowerCase();
+        if (!q) return prRecords;
+        return prRecords.filter(
+            (item) =>
+                item.name.toLowerCase().includes(q) ||
+                (item.muscleGroupName?.toLowerCase().includes(q) ?? false)
+        );
+    }, [prRecords, prQuery]);
 
     useEffect(() => {
         let cancelled = false;
@@ -127,7 +132,12 @@ export default function ProfilePage() {
                     <button
                         type="button"
                         className={`btn ${showPRs ? 'btn-primary' : 'btn-ghost'}`}
-                        onClick={() => setShowPRs((s) => !s)}
+                        onClick={() =>
+                            setShowPRs((s) => {
+                                if (s) setPrQuery('');
+                                return !s;
+                            })
+                        }
                         aria-expanded={showPRs}
                         aria-controls="pr-records-section"
                         title="See your all-time PR for every exercise you've logged"
@@ -220,17 +230,36 @@ export default function ProfilePage() {
                             </p>
                         </div>
                         <span className="muted small">
-                            {prRecords.length} exercise{prRecords.length === 1 ? '' : 's'}
+                            {prQuery.trim()
+                                ? `${visiblePRRecords.length} of ${prRecords.length}`
+                                : `${prRecords.length} exercise${prRecords.length === 1 ? '' : 's'}`}
                         </span>
                     </div>
+
+                    {prRecords.length > 0 && (
+                        <div className="pr-records-search">
+                            <input
+                                type="search"
+                                className="pr-records-search-input"
+                                placeholder="Search exercise or muscle group…"
+                                value={prQuery}
+                                onChange={(e) => setPrQuery(e.target.value)}
+                                aria-label="Search PR records"
+                            />
+                        </div>
+                    )}
 
                     {prRecords.length === 0 ? (
                         <p className="muted">
                             No PRs yet -- log a workout and your records will appear here.
                         </p>
+                    ) : visiblePRRecords.length === 0 ? (
+                        <p className="muted">
+                            No exercises match &quot;{prQuery.trim()}&quot;.
+                        </p>
                     ) : (
                         <ul className="pr-records-list">
-                            {prRecords.map((item) => (
+                            {visiblePRRecords.map((item) => (
                                 <li key={item.exerciseId} className="pr-records-row">
                                     <div className="pr-records-name">
                                         <span className="pr-records-exercise">{item.name}</span>
@@ -406,24 +435,15 @@ function Stat({ label, value, small }: StatProps) {
     );
 }
 
-/** One row of the "PR records" list: a single exercise + its PR (or null). */
 interface PRItem {
     exerciseId: string;
     name: string;
     muscleGroupName: string | null;
     timeBased: boolean;
     pr: PRRecord | null;
-    /** Most recent date the user logged this exercise -- used as the
-     *  fallback sort key when there's no PR yet. */
     lastLoggedDate: string;
 }
 
-/**
- * Walk the workout history once to collect every exercise the user has
- * ever logged, then compute its all-time PR. Sorted PR-first (by date,
- * newest -> oldest) and falls back to last-logged date for exercises
- * with no qualifying PR yet (e.g. only bodyweight sets).
- */
 function buildPRList(
     workoutsByDate: Record<string, import('../types').Workout>,
     exerciseLookup: Record<string, import('../types').Exercise>,
@@ -461,9 +481,6 @@ function buildPRList(
         });
     }
 
-    // Sort: exercises with a PR first (newest PR date first), then those
-    // without by most-recent log date. Tiebreak alphabetically so the
-    // ordering stays stable across renders.
     rows.sort((a, b) => {
         const aDate = a.pr?.date || '';
         const bDate = b.pr?.date || '';
@@ -483,7 +500,6 @@ interface PRValueProps {
     pr: PRRecord;
 }
 
-/** Inline PR value, matching the SetLogger badge formatting (kg x reps). */
 function PRValue({ pr }: PRValueProps) {
     if (pr.timeBased) {
         return (

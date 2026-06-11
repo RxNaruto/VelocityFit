@@ -953,7 +953,30 @@ a {
   flex-shrink: 0;
   overflow: hidden;
 }
+.pr-records-search {
+  width: 100%;
+}
 
+.pr-records-search-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 14px;
+  font-family: var(--font);
+}
+
+.pr-records-search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25);
+}
+
+.pr-records-search-input::placeholder {
+  color: var(--muted);
+}
 /* Black-silhouette PNGs in public/icons/ → tint to white via CSS filter so
    they read clearly against the red-tinted icon container. */
 .muscle-icon-img {
@@ -1048,7 +1071,48 @@ a {
   flex-direction: column;
   gap: 12px;
 }
+.page-landing {
+  gap: 20px;
+}
 
+.landing-hero {
+  gap: 18px;
+}
+
+.landing-lead {
+  margin: 0;
+  max-width: 640px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-soft, var(--text));
+}
+
+.app-nav-guest {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.landing-features {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.landing-feature {
+  gap: 8px;
+}
+
+.landing-feature-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+@media (max-width: 860px) {
+  .landing-features {
+    grid-template-columns: 1fr;
+  }
+}
 .entry {
   background: var(--surface-2);
   border: 1px solid var(--border);

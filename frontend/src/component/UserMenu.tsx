@@ -61,14 +61,6 @@ export default function UserMenu() {
                         Calendar
                     </Link>
                     <Link
-                        to="/add?step=pickGroup"
-                        className="user-menu-item"
-                        onClick={() => setOpen(false)}
-                        role="menuitem"
-                    >
-                        + Add exercise
-                    </Link>
-                    <Link
                         to="/admin/exercises"
                         className="user-menu-item"
                         onClick={() => setOpen(false)}
