@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import HomePage from './pages/HomePage';
+import PublicHomePage from './pages/PublicHomePage';
 import WorkoutDayPage from './pages/WorkoutDayPage';
 import AddWorkoutPage from './pages/AddWorkoutPage';
 import LoginPage from './pages/LoginPage';
@@ -10,7 +11,6 @@ import ProfilePage from './pages/ProfilePage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import UserProfilePage from './pages/UserProfilePage';
 import ManageExercisesPage from './pages/ManageExercisesPage';
-import ProtectedRoute from './component/ProtectedRoute';
 import UserMenu from './component/UserMenu';
 import Spinner from './component/Spinner';
 import BrandMark from './component/BrandMark';
@@ -26,7 +26,7 @@ export default function App() {
     <div className="app-shell">
       {!onAuthPage && (
         <header className="app-header">
-          <Link to={isAuthenticated ? '/' : '/login'} className="brand">
+          <Link to="/" className="brand">
             <BrandMark />
             <span className="brand-name">VELOCITY FIT</span>
           </Link>
@@ -51,7 +51,18 @@ export default function App() {
               </NavLink>
             </nav>
           )}
-          {isAuthenticated && <UserMenu />}
+          {isAuthenticated ? (
+            <UserMenu />
+          ) : (
+            <nav className="app-nav app-nav-guest">
+              <Link to="/login" className="btn btn-ghost btn-sm">
+                Sign in
+              </Link>
+              <Link to="/register" className="btn btn-primary btn-sm">
+                Create account
+              </Link>
+            </nav>
+          )}
         </header>
       )}
 
@@ -68,11 +79,13 @@ export default function App() {
             <Route
               path="/*"
               element={
-                <ProtectedRoute>
+                isAuthenticated ? (
                   <WorkoutProvider>
                     <ProtectedShell />
                   </WorkoutProvider>
-                </ProtectedRoute>
+                ) : (
+                  <PublicShell />
+                )
               }
             />
           </Routes>
@@ -115,6 +128,24 @@ function ProtectedShell() {
       <Route path="/u/:username" element={<UserProfilePage />} />
       <Route path="/admin/exercises" element={<ManageExercisesPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+/**
+ * Routes available to signed-out visitors. The landing page is public; any
+ * other route (logging a workout, profile, etc.) bounces to the login screen
+ * while remembering where the user was headed so they land there afterwards.
+ */
+function PublicShell() {
+  const location = useLocation();
+  return (
+    <Routes>
+      <Route path="/" element={<PublicHomePage />} />
+      <Route
+        path="*"
+        element={<Navigate to="/login" replace state={{ from: location }} />}
+      />
     </Routes>
   );
 }
